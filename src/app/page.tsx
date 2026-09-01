@@ -38,67 +38,87 @@ interface RankedBank extends BankStats {
   activo: boolean;
 }
 
-const PRIORITY_BANKS = [
-  "Banesco",
-  "Provincial",
-  "Bancamiga",
-  "Mercantil",
-  "Banco de Venezuela",
-  "BNC Banco Nacional de Crédito",
-  "BBVA",
-  "Banplus",
-  "Banco del Tesoro",
-  "Bank Transfer",
+const BANK_GROUPS: { display: string; methods: string[] }[] = [
+  { display: "Banesco", methods: ["Banesco"] },
+  { display: "Mercantil", methods: ["Mercantil"] },
+  { display: "Provincial / BBVA", methods: ["Provincial", "BBVA"] },
+  { display: "BNC", methods: ["BNC Banco Nacional de Crédito"] },
+  { display: "Bancamiga", methods: ["Bancamiga"] },
+  { display: "BDT", methods: ["Banco Digital de los Trabajadores"] },
+  { display: "Banplus", methods: ["Banplus"] },
+  { display: "Plaza", methods: ["Plaza"] },
+  { display: "Banco Activo", methods: ["Banco Activo"] },
+  { display: "BDV", methods: ["Banco de Venezuela", "Bank Transfer"] },
 ];
 
-function matchBank(apiBankName: string, targetName: string): boolean {
-  const a = apiBankName.toLowerCase();
-  const b = targetName.toLowerCase();
-  return a === b || a.includes(b) || b.includes(a);
+function findApiBank(apiBanks: BankStats[], method: string): BankStats | undefined {
+  const m = method.toLowerCase();
+  return apiBanks.find((b) => {
+    const a = b.banco.toLowerCase();
+    return a === m || a.includes(m) || m.includes(a);
+  });
+}
+
+function mergeGroup(apiBanks: BankStats[], methods: string[]): { stats: BankStats; activo: boolean } | null {
+  const matches: BankStats[] = [];
+  for (const method of methods) {
+    const found = findApiBank(apiBanks, method);
+    if (found) matches.push(found);
+  }
+  if (matches.length === 0) return null;
+
+  const totalAds = matches.reduce((s, b) => s + b.cantidadAnuncios, 0);
+  const totalVol = matches.reduce((s, b) => s + b.volumenDisponible, 0);
+  const weightedPrice = matches.reduce((s, b) => s + b.precioPromedio * b.cantidadAnuncios, 0) / totalAds;
+
+  return {
+    stats: {
+      banco: "",
+      cantidadAnuncios: totalAds,
+      volumenDisponible: Math.round(totalVol * 100) / 100,
+      precioPromedio: Math.round(weightedPrice * 100) / 100,
+      score: 0,
+    },
+    activo: true,
+  };
 }
 
 function buildRankedList(
   apiBanks: BankStats[],
   prevRanking: Map<string, number>
 ): RankedBank[] {
-  const matched: RankedBank[] = [];
-
-  for (const target of PRIORITY_BANKS) {
-    const found = apiBanks.find((b) => matchBank(b.banco, target));
-    if (found) {
-      matched.push({
-        ...found,
+  const items: RankedBank[] = BANK_GROUPS.map((group) => {
+    const merged = mergeGroup(apiBanks, group.methods);
+    if (merged) {
+      return {
+        ...merged.stats,
+        banco: group.display,
         posicion: 0,
         cambio: 0,
         activo: true,
-      });
-    } else {
-      matched.push({
-        banco: target,
-        cantidadAnuncios: 0,
-        volumenDisponible: 0,
-        precioPromedio: 0,
-        score: 0,
-        posicion: 0,
-        cambio: 0,
-        activo: false,
-      });
+      };
     }
-  }
+    return {
+      banco: group.display,
+      cantidadAnuncios: 0,
+      volumenDisponible: 0,
+      precioPromedio: 0,
+      score: 0,
+      posicion: 0,
+      cambio: 0,
+      activo: false,
+    };
+  });
 
-  matched
-    .filter((b) => b.activo)
-    .sort((a, b) => b.precioPromedio - a.precioPromedio);
-
-  const activos = matched.filter((b) => b.activo).sort((a, b) => b.precioPromedio - a.precioPromedio);
-  const inactivos = matched.filter((b) => !b.activo);
+  const activos = items.filter((b) => b.activo).sort((a, b) => b.precioPromedio - a.precioPromedio);
+  const inactivos = items.filter((b) => !b.activo);
   const sorted = [...activos, ...inactivos];
 
   sorted.forEach((b, i) => {
     b.posicion = i + 1;
     const prev = prevRanking.get(b.banco);
     if (prev !== undefined) {
-      b.cambio = prev - b.posicion; // positive = subió posiciones
+      b.cambio = prev - b.posicion;
     }
   });
 
