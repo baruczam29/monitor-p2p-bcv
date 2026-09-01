@@ -13,6 +13,8 @@ interface CurrencyData {
 interface BcvResponse {
   usd: CurrencyData;
   paralelo: CurrencyData;
+  eur: CurrencyData;
+  eurUsdRate: number | null;
   fetchedAt: string;
 }
 
@@ -287,6 +289,11 @@ export default function Home() {
           label="USD Paralelo"
           value={bcv?.paralelo.promedio ?? null}
           color="#f59e0b"
+        />
+        <BcvPill
+          label="EUR Oficial"
+          value={bcv?.eur.promedio ?? null}
+          color="#8b5cf6"
         />
         {bcv?.usd.promedio && bcv?.paralelo.promedio && (
           <span className="text-sm" style={{ color: "#64748b" }}>
