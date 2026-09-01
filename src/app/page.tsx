@@ -39,18 +39,20 @@ interface RankedBank extends BankStats {
   activo: boolean;
 }
 
-const BANK_GROUPS: { display: string; methods: string[] }[] = [
-  { display: "Banesco", methods: ["Banesco"] },
-  { display: "Mercantil", methods: ["Mercantil"] },
-  { display: "Provincial / BBVA", methods: ["Provincial", "BBVA"] },
-  { display: "BNC", methods: ["BNC Banco Nacional de Crédito"] },
-  { display: "Bancamiga", methods: ["Bancamiga"] },
-  { display: "BDT", methods: ["Banco Digital de los Trabajadores", "Banco del Tesoro"] },
-  { display: "Banplus", methods: ["Banplus"] },
-  { display: "Banco Plaza", methods: ["Banco Plaza", "Plaza"] },
-  { display: "Banco Activo", methods: ["Banco Activo"] },
-  { display: "BDV", methods: ["Banco de Venezuela", "Bank Transfer", "Pago Movil"] },
+const BANK_GROUPS: { display: string; methods: string[]; abbr: string; color: string }[] = [
+  { display: "Banesco", methods: ["Banesco"], abbr: "BA", color: "#00A651" },
+  { display: "Mercantil", methods: ["Mercantil"], abbr: "ME", color: "#003DA5" },
+  { display: "Provincial / BBVA", methods: ["Provincial", "BBVA"], abbr: "PR", color: "#004481" },
+  { display: "BNC", methods: ["BNC Banco Nacional de Crédito"], abbr: "BN", color: "#D4213D" },
+  { display: "Bancamiga", methods: ["Bancamiga"], abbr: "BM", color: "#F58220" },
+  { display: "BDT", methods: ["Banco Digital de los Trabajadores", "Banco del Tesoro"], abbr: "DT", color: "#0077B6" },
+  { display: "Banplus", methods: ["Banplus"], abbr: "B+", color: "#E30613" },
+  { display: "Banco Plaza", methods: ["Banco Plaza", "Plaza"], abbr: "PL", color: "#006341" },
+  { display: "Banco Activo", methods: ["Banco Activo"], abbr: "AC", color: "#CC0000" },
+  { display: "BDV", methods: ["Banco de Venezuela", "Bank Transfer", "Pago Movil"], abbr: "BV", color: "#005BAA" },
 ];
+
+const BANK_BRAND_MAP = new Map(BANK_GROUPS.map((g) => [g.display, { abbr: g.abbr, color: g.color }]));
 
 function findApiBank(apiBanks: BankStats[], method: string): BankStats | undefined {
   const m = method.toLowerCase();
@@ -136,6 +138,19 @@ function formatVol(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
   return n.toLocaleString("es-VE", { maximumFractionDigits: 0 });
+}
+
+function BankBadge({ name }: { name: string }) {
+  const brand = BANK_BRAND_MAP.get(name);
+  if (!brand) return null;
+  return (
+    <span
+      className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold shrink-0"
+      style={{ backgroundColor: brand.color, color: "#fff" }}
+    >
+      {brand.abbr}
+    </span>
+  );
 }
 
 function StatusDot({ ok }: { ok: boolean }) {
@@ -339,7 +354,10 @@ export default function Home() {
                       <ChangeIndicator cambio={b.cambio} />
                     </td>
                     <td className="py-3 pr-3 font-medium text-sm md:text-base">
-                      {b.banco}
+                      <span className="flex items-center gap-2">
+                        <BankBadge name={b.banco} />
+                        {b.banco}
+                      </span>
                     </td>
                     <td
                       className="py-3 pr-3 text-right font-mono text-lg md:text-xl font-bold tabular-nums"
