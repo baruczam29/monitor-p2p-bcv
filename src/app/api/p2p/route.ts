@@ -57,10 +57,12 @@ export async function GET() {
     const allAds = pages.flat();
 
     const bankMap = new Map<string, { prices: number[]; volume: number }>();
+    let totalVolumeUsdt = 0;
 
     for (const ad of allAds) {
       const price = parseFloat(ad.adv.price);
       const volume = parseFloat(ad.adv.surplusAmount);
+      totalVolumeUsdt += volume;
       for (const method of ad.adv.tradeMethods) {
         const name = method.tradeMethodName;
         const entry = bankMap.get(name) ?? { prices: [], volume: 0 };
@@ -97,10 +99,11 @@ export async function GET() {
       banks,
       totalAds: allAds.length,
       totalBanks: bankMap.size,
+      totalVolumeUsdt: Math.round(totalVolumeUsdt * 100) / 100,
       fetchedAt: new Date().toISOString(),
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
-    return NextResponse.json({ error: msg, banks: [], totalAds: 0, totalBanks: 0, fetchedAt: null }, { status: 502 });
+    return NextResponse.json({ error: msg, banks: [], totalAds: 0, totalBanks: 0, totalVolumeUsdt: 0, fetchedAt: null }, { status: 502 });
   }
 }

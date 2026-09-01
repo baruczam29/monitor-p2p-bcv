@@ -28,6 +28,7 @@ interface P2pResponse {
   banks: BankStats[];
   totalAds: number;
   totalBanks: number;
+  totalVolumeUsdt: number;
   fetchedAt: string | null;
   error?: string;
 }
@@ -174,6 +175,7 @@ export default function Home() {
   const [bcv, setBcv] = useState<BcvResponse | null>(null);
   const [ranked, setRanked] = useState<RankedBank[]>([]);
   const [totalAds, setTotalAds] = useState(0);
+  const [totalVolumeUsdt, setTotalVolumeUsdt] = useState(0);
   const [bcvOk, setBcvOk] = useState(true);
   const [p2pOk, setP2pOk] = useState(true);
   const [lastBcvTime, setLastBcvTime] = useState<string | null>(null);
@@ -205,6 +207,7 @@ export default function Home() {
       const newRanked = buildRankedList(data.banks, prevRanking.current);
       setRanked(newRanked);
       setTotalAds(data.totalAds);
+      setTotalVolumeUsdt(data.totalVolumeUsdt);
 
       const nextPrev = new Map<string, number>();
       newRanked.forEach((b) => nextPrev.set(b.banco, b.posicion));
@@ -376,6 +379,31 @@ export default function Home() {
           </table>
         </div>
       </section>
+
+      {/* Market totals */}
+      {totalAds > 0 && (
+        <div
+          className="rounded-lg border px-4 py-3 mb-4 flex flex-wrap items-center gap-x-8 gap-y-2"
+          style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
+        >
+          <span className="text-xs uppercase tracking-wider" style={{ color: "#475569" }}>
+            Mercado P2P total
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="text-sm" style={{ color: "#94a3b8" }}>Anuncios</span>
+            <span className="font-mono font-bold text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
+              {totalAds}
+            </span>
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="text-sm" style={{ color: "#94a3b8" }}>Volumen disponible</span>
+            <span className="font-mono font-bold text-lg tabular-nums" style={{ color: "#3b82f6" }}>
+              {totalVolumeUsdt.toLocaleString("es-VE", { maximumFractionDigits: 0 })}
+            </span>
+            <span className="text-xs" style={{ color: "#475569" }}>USDT</span>
+          </span>
+        </div>
+      )}
 
       {/* Status bar */}
       <footer
