@@ -25,50 +25,141 @@ interface BankStats {
 }
 
 interface P2pResponse {
-  top10: BankStats[];
+  banks: BankStats[];
   totalAds: number;
   totalBanks: number;
   fetchedAt: string | null;
   error?: string;
 }
 
-function formatBs(n: number | null): string {
-  if (n === null) return "—";
-  return n.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+interface RankedBank extends BankStats {
+  posicion: number;
+  cambio: number; // positive = subió, negative = bajó, 0 = igual
+  activo: boolean;
 }
 
-function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleString("es-VE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
+const PRIORITY_BANKS = [
+  "Banesco",
+  "Provincial",
+  "Bancamiga",
+  "Mercantil",
+  "Banco de Venezuela",
+  "BNC Banco Nacional de Crédito",
+  "BBVA",
+  "Banplus",
+  "Banco del Tesoro",
+  "Bank Transfer",
+];
+
+function matchBank(apiBankName: string, targetName: string): boolean {
+  const a = apiBankName.toLowerCase();
+  const b = targetName.toLowerCase();
+  return a === b || a.includes(b) || b.includes(a);
+}
+
+function buildRankedList(
+  apiBanks: BankStats[],
+  prevRanking: Map<string, number>
+): RankedBank[] {
+  const matched: RankedBank[] = [];
+
+  for (const target of PRIORITY_BANKS) {
+    const found = apiBanks.find((b) => matchBank(b.banco, target));
+    if (found) {
+      matched.push({
+        ...found,
+        posicion: 0,
+        cambio: 0,
+        activo: true,
+      });
+    } else {
+      matched.push({
+        banco: target,
+        cantidadAnuncios: 0,
+        volumenDisponible: 0,
+        precioPromedio: 0,
+        score: 0,
+        posicion: 0,
+        cambio: 0,
+        activo: false,
+      });
+    }
   }
+
+  matched
+    .filter((b) => b.activo)
+    .sort((a, b) => b.precioPromedio - a.precioPromedio);
+
+  const activos = matched.filter((b) => b.activo).sort((a, b) => b.precioPromedio - a.precioPromedio);
+  const inactivos = matched.filter((b) => !b.activo);
+  const sorted = [...activos, ...inactivos];
+
+  sorted.forEach((b, i) => {
+    b.posicion = i + 1;
+    const prev = prevRanking.get(b.banco);
+    if (prev !== undefined) {
+      b.cambio = prev - b.posicion; // positive = subió posiciones
+    }
+  });
+
+  return sorted;
+}
+
+function formatBs(n: number | null): string {
+  if (n === null || n === 0) return "—";
+  return n.toLocaleString("es-VE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatVol(n: number): string {
+  if (n === 0) return "—";
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
+  return n.toLocaleString("es-VE", { maximumFractionDigits: 0 });
 }
 
 function StatusDot({ ok }: { ok: boolean }) {
   return (
     <span
-      className="inline-block w-3 h-3 rounded-full"
+      className="inline-block w-2.5 h-2.5 rounded-full"
       style={{ backgroundColor: ok ? "#22c55e" : "#ef4444" }}
     />
   );
 }
 
+function ChangeIndicator({ cambio }: { cambio: number }) {
+  if (cambio === 0) return <span style={{ color: "#475569" }}>—</span>;
+  if (cambio > 0)
+    return (
+      <span className="flex items-center gap-0.5 font-semibold" style={{ color: "#22c55e" }}>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M6 2L10 7H2L6 2Z" fill="currentColor" />
+        </svg>
+        {cambio}
+      </span>
+    );
+  return (
+    <span className="flex items-center gap-0.5 font-semibold" style={{ color: "#ef4444" }}>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M6 10L2 5H10L6 10Z" fill="currentColor" />
+      </svg>
+      {Math.abs(cambio)}
+    </span>
+  );
+}
+
 export default function Home() {
   const [bcv, setBcv] = useState<BcvResponse | null>(null);
-  const [p2p, setP2p] = useState<P2pResponse | null>(null);
+  const [ranked, setRanked] = useState<RankedBank[]>([]);
+  const [totalAds, setTotalAds] = useState(0);
   const [bcvOk, setBcvOk] = useState(true);
   const [p2pOk, setP2pOk] = useState(true);
   const [lastBcvTime, setLastBcvTime] = useState<string | null>(null);
   const [lastP2pTime, setLastP2pTime] = useState<string | null>(null);
   const [clock, setClock] = useState("");
+  const prevRanking = useRef<Map<string, number>>(new Map());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchBcv = useCallback(async () => {
@@ -90,7 +181,15 @@ export default function Home() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: P2pResponse = await res.json();
       if (data.error) throw new Error(data.error);
-      setP2p(data);
+
+      const newRanked = buildRankedList(data.banks, prevRanking.current);
+      setRanked(newRanked);
+      setTotalAds(data.totalAds);
+
+      const nextPrev = new Map<string, number>();
+      newRanked.forEach((b) => nextPrev.set(b.banco, b.posicion));
+      prevRanking.current = nextPrev;
+
       setP2pOk(true);
       setLastP2pTime(new Date().toLocaleTimeString("es-VE"));
     } catch {
@@ -125,135 +224,185 @@ export default function Home() {
   }, [fetchBcv, fetchP2p]);
 
   return (
-    <main className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full">
+    <main className="flex-1 p-4 md:p-6 max-w-5xl mx-auto w-full">
       {/* Header */}
-      <header className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl md:text-4xl font-bold tracking-tight">
+      <header className="flex items-center justify-between mb-4">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">
           Monitor P2P &amp; BCV
         </h1>
-        <div className="text-2xl md:text-4xl font-mono tabular-nums" style={{ color: "#3b82f6" }}>
+        <div
+          className="text-xl md:text-2xl font-mono tabular-nums"
+          style={{ color: "#3b82f6" }}
+        >
           {clock}
         </div>
       </header>
 
-      {/* BCV Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <BcvCard label="USD Oficial" flag="🏛️" data={bcv?.usd ?? null} accentColor="#22c55e" />
-        <BcvCard label="USD Paralelo" flag="📊" data={bcv?.paralelo ?? null} accentColor="#f59e0b" />
-      </div>
-
-      {/* P2P Table */}
-      <section
-        className="rounded-xl border p-4 md:p-6 mb-8"
+      {/* BCV compact bar */}
+      <div
+        className="rounded-lg border px-4 py-3 mb-5 flex flex-wrap items-center gap-x-8 gap-y-2"
         style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
       >
-        <h2 className="text-lg md:text-xl font-semibold mb-4">
-          Top 10 bancos &middot; Binance P2P (USDT &rarr; VES, venta)
-        </h2>
+        <BcvPill
+          label="USD Oficial"
+          value={bcv?.usd.promedio ?? null}
+          color="#22c55e"
+        />
+        <BcvPill
+          label="USD Paralelo"
+          value={bcv?.paralelo.promedio ?? null}
+          color="#f59e0b"
+        />
+        {bcv?.usd.promedio && bcv?.paralelo.promedio && (
+          <span className="text-sm" style={{ color: "#64748b" }}>
+            Brecha:{" "}
+            <span className="font-mono font-semibold" style={{ color: "#f87171" }}>
+              {(
+                ((bcv.paralelo.promedio - bcv.usd.promedio) /
+                  bcv.usd.promedio) *
+                100
+              ).toFixed(1)}
+              %
+            </span>
+          </span>
+        )}
+      </div>
+
+      {/* P2P Table — main content */}
+      <section
+        className="rounded-xl border p-4 md:p-6 mb-4"
+        style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base md:text-lg font-semibold">
+            Ranking bancos &middot; Binance P2P (USDT &rarr; VES)
+          </h2>
+          {totalAds > 0 && (
+            <span className="text-xs" style={{ color: "#64748b" }}>
+              {totalAds} anuncios
+            </span>
+          )}
+        </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm md:text-base">
+          <table className="w-full">
             <thead>
-              <tr className="text-left border-b" style={{ borderColor: "#1e293b", color: "#64748b" }}>
-                <th className="py-2 pr-4 w-10">#</th>
-                <th className="py-2 pr-4">Banco</th>
-                <th className="py-2 pr-4 text-right">Precio venta prom. (Bs)</th>
-                <th className="py-2 pr-4 text-right">Anuncios</th>
+              <tr
+                className="text-left border-b text-xs uppercase tracking-wider"
+                style={{ borderColor: "#1e293b", color: "#475569" }}
+              >
+                <th className="py-2 pr-3 w-10">#</th>
+                <th className="py-2 pr-3 w-10"></th>
+                <th className="py-2 pr-3">Banco</th>
+                <th className="py-2 pr-3 text-right">Precio venta (Bs)</th>
+                <th className="py-2 pr-3 text-right">Anuncios</th>
                 <th className="py-2 text-right">Volumen (USDT)</th>
               </tr>
             </thead>
             <tbody>
-              {p2p && p2p.top10.length > 0 ? (
-                p2p.top10.map((b, i) => (
-                  <tr key={b.banco} className="border-b" style={{ borderColor: "#1e293b" }}>
-                    <td className="py-3 pr-4 font-mono" style={{ color: "#64748b" }}>
-                      {i + 1}
+              {ranked.length > 0 ? (
+                ranked.map((b) => (
+                  <tr
+                    key={b.banco}
+                    className="border-b transition-opacity duration-300"
+                    style={{
+                      borderColor: "#1e293b",
+                      opacity: b.activo ? 1 : 0.35,
+                    }}
+                  >
+                    <td
+                      className="py-3 pr-3 font-mono text-sm"
+                      style={{ color: "#475569" }}
+                    >
+                      {b.posicion}
                     </td>
-                    <td className="py-3 pr-4 font-medium">{b.banco}</td>
-                    <td className="py-3 pr-4 text-right font-mono" style={{ color: "#f59e0b" }}>
+                    <td className="py-3 pr-3 text-sm">
+                      <ChangeIndicator cambio={b.cambio} />
+                    </td>
+                    <td className="py-3 pr-3 font-medium text-sm md:text-base">
+                      {b.banco}
+                    </td>
+                    <td
+                      className="py-3 pr-3 text-right font-mono text-lg md:text-xl font-bold tabular-nums"
+                      style={{ color: b.activo ? "#f59e0b" : "#334155" }}
+                    >
                       {formatBs(b.precioPromedio)}
                     </td>
-                    <td className="py-3 pr-4 text-right font-mono">{b.cantidadAnuncios}</td>
-                    <td className="py-3 text-right font-mono">
-                      {b.volumenDisponible.toLocaleString("es-VE", { maximumFractionDigits: 2 })}
+                    <td
+                      className="py-3 pr-3 text-right font-mono text-sm"
+                      style={{ color: b.activo ? "#e8eaf0" : "#334155" }}
+                    >
+                      {b.activo ? b.cantidadAnuncios : "—"}
+                    </td>
+                    <td
+                      className="py-3 text-right font-mono text-sm"
+                      style={{ color: b.activo ? "#e8eaf0" : "#334155" }}
+                    >
+                      {b.activo ? formatVol(b.volumenDisponible) : "—"}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center" style={{ color: "#64748b" }}>
-                    {p2p?.error ? `Error: ${p2p.error}` : "Cargando datos P2P…"}
+                  <td
+                    colSpan={6}
+                    className="py-12 text-center"
+                    style={{ color: "#64748b" }}
+                  >
+                    Cargando datos P2P…
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        {p2p && !p2p.error && (
-          <p className="text-xs mt-3" style={{ color: "#64748b" }}>
-            {p2p.totalAds} anuncios analizados de {p2p.totalBanks} métodos de pago
-          </p>
-        )}
       </section>
 
       {/* Status bar */}
       <footer
-        className="rounded-xl border px-4 py-3 flex flex-wrap items-center gap-4 text-sm"
-        style={{ backgroundColor: "#131926", borderColor: "#1e293b", color: "#64748b" }}
+        className="rounded-lg border px-4 py-2 flex flex-wrap items-center gap-4 text-xs"
+        style={{
+          backgroundColor: "#131926",
+          borderColor: "#1e293b",
+          color: "#64748b",
+        }}
       >
-        <span className="flex items-center gap-2">
-          <StatusDot ok={bcvOk} /> BCV {lastBcvTime ? `· ${lastBcvTime}` : ""}
+        <span className="flex items-center gap-1.5">
+          <StatusDot ok={bcvOk} /> BCV{" "}
+          {lastBcvTime ? `· ${lastBcvTime}` : ""}
         </span>
-        <span className="flex items-center gap-2">
-          <StatusDot ok={p2pOk} /> P2P {lastP2pTime ? `· ${lastP2pTime}` : ""}
+        <span className="flex items-center gap-1.5">
+          <StatusDot ok={p2pOk} /> P2P{" "}
+          {lastP2pTime ? `· ${lastP2pTime}` : ""}
         </span>
-        <span className="ml-auto text-xs">Actualización automática cada 60s</span>
+        <span className="ml-auto">Refresh cada 60s</span>
       </footer>
     </main>
   );
 }
 
-function BcvCard({
+function BcvPill({
   label,
-  flag,
-  data,
-  accentColor = "#22c55e",
+  value,
+  color,
 }: {
   label: string;
-  flag: string;
-  data: CurrencyData | null;
-  accentColor?: string;
+  value: number | null;
+  color: string;
 }) {
   return (
-    <div className="rounded-xl border p-4 md:p-6" style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}>
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-2xl">{flag}</span>
-        <h2 className="text-lg font-semibold">{label}</h2>
-        {data?.error && (
-          <span
-            className="text-xs px-2 py-0.5 rounded"
-            style={{ backgroundColor: "#ef4444", color: "#fff" }}
-          >
-            Error
-          </span>
-        )}
-      </div>
-      <p className="text-4xl md:text-5xl font-bold font-mono tabular-nums mb-3" style={{ color: accentColor }}>
-        {formatBs(data?.promedio ?? null)}{" "}
-        <span className="text-lg font-normal" style={{ color: "#64748b" }}>
-          Bs
-        </span>
-      </p>
-      <div className="flex gap-6 text-sm" style={{ color: "#64748b" }}>
-        <span>
-          Compra: <span className="font-mono" style={{ color: "#e8eaf0" }}>{formatBs(data?.compra ?? null)}</span>
-        </span>
-        <span>
-          Venta: <span className="font-mono" style={{ color: "#e8eaf0" }}>{formatBs(data?.venta ?? null)}</span>
-        </span>
-      </div>
-      <p className="text-xs mt-2" style={{ color: "#64748b" }}>
-        Actualizado: {formatDate(data?.fechaActualizacion ?? null)}
-      </p>
-    </div>
+    <span className="flex items-center gap-2">
+      <span className="text-sm" style={{ color: "#94a3b8" }}>
+        {label}
+      </span>
+      <span
+        className="font-mono font-bold text-lg md:text-xl tabular-nums"
+        style={{ color }}
+      >
+        {formatBs(value)}
+      </span>
+      <span className="text-xs" style={{ color: "#475569" }}>
+        Bs
+      </span>
+    </span>
   );
 }

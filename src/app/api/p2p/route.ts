@@ -92,16 +92,15 @@ export async function GET() {
     }
 
     banks.sort((a, b) => b.score - a.score);
-    const top10 = banks.slice(0, 10);
 
     return NextResponse.json({
-      top10,
+      banks,
       totalAds: allAds.length,
       totalBanks: bankMap.size,
       fetchedAt: new Date().toISOString(),
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
-    return NextResponse.json({ error: msg, top10: [], totalAds: 0, totalBanks: 0, fetchedAt: null }, { status: 502 });
+    return NextResponse.json({ error: msg, banks: [], totalAds: 0, totalBanks: 0, fetchedAt: null }, { status: 502 });
   }
 }
