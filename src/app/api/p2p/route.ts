@@ -19,6 +19,7 @@ interface BankStats {
   cantidadAnuncios: number;
   volumenDisponible: number;
   precioPromedio: number;
+  mejorPrecio: number;
   score: number;
 }
 
@@ -76,11 +77,13 @@ export async function GET() {
     const banks: BankStats[] = [];
     for (const [banco, data] of bankMap.entries()) {
       const avg = data.prices.reduce((a, b) => a + b, 0) / data.prices.length;
+      const best = Math.max(...data.prices);
       banks.push({
         banco,
         cantidadAnuncios: data.prices.length,
         volumenDisponible: Math.round(data.volume * 100) / 100,
         precioPromedio: Math.round(avg * 100) / 100,
+        mejorPrecio: Math.round(best * 100) / 100,
         score: 0,
       });
     }

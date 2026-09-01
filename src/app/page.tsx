@@ -23,6 +23,7 @@ interface BankStats {
   cantidadAnuncios: number;
   volumenDisponible: number;
   precioPromedio: number;
+  mejorPrecio: number;
   score: number;
 }
 
@@ -72,6 +73,7 @@ function mergeGroup(apiBanks: BankStats[], methods: string[]): { stats: BankStat
   const totalAds = matches.reduce((s, b) => s + b.cantidadAnuncios, 0);
   const totalVol = matches.reduce((s, b) => s + b.volumenDisponible, 0);
   const weightedPrice = matches.reduce((s, b) => s + b.precioPromedio * b.cantidadAnuncios, 0) / totalAds;
+  const bestPrice = Math.max(...matches.map((b) => b.mejorPrecio));
 
   return {
     stats: {
@@ -79,6 +81,7 @@ function mergeGroup(apiBanks: BankStats[], methods: string[]): { stats: BankStat
       cantidadAnuncios: totalAds,
       volumenDisponible: Math.round(totalVol * 100) / 100,
       precioPromedio: Math.round(weightedPrice * 100) / 100,
+      mejorPrecio: bestPrice,
       score: 0,
     },
     activo: true,
@@ -105,6 +108,7 @@ function buildRankedList(
       cantidadAnuncios: 0,
       volumenDisponible: 0,
       precioPromedio: 0,
+      mejorPrecio: 0,
       score: 0,
       posicion: 0,
       cambio: 0,
@@ -112,7 +116,7 @@ function buildRankedList(
     };
   });
 
-  const activos = items.filter((b) => b.activo).sort((a, b) => b.precioPromedio - a.precioPromedio);
+  const activos = items.filter((b) => b.activo).sort((a, b) => b.mejorPrecio - a.mejorPrecio);
   const inactivos = items.filter((b) => !b.activo);
   const sorted = [...activos, ...inactivos];
 
@@ -324,7 +328,8 @@ export default function Home() {
                 <th className="py-2 pr-3 w-10">#</th>
                 <th className="py-2 pr-3 w-10"></th>
                 <th className="py-2 pr-3">Banco</th>
-                <th className="py-2 pr-3 text-right">Precio venta (Bs)</th>
+                <th className="py-2 pr-3 text-right">Mejor precio (Bs)</th>
+                <th className="py-2 pr-3 text-right">Promedio (Bs)</th>
                 <th className="py-2 pr-3 text-right">Anuncios</th>
                 <th className="py-2 text-right">Volumen (USDT)</th>
               </tr>
@@ -353,6 +358,12 @@ export default function Home() {
                       className="py-3 pr-3 text-right font-mono text-lg md:text-xl font-bold tabular-nums"
                       style={{ color: b.activo ? "#f59e0b" : "#334155" }}
                     >
+                      {formatBs(b.mejorPrecio)}
+                    </td>
+                    <td
+                      className="py-3 pr-3 text-right font-mono text-sm"
+                      style={{ color: b.activo ? "#64748b" : "#334155" }}
+                    >
                       {formatBs(b.precioPromedio)}
                     </td>
                     <td
@@ -371,7 +382,7 @@ export default function Home() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center" style={{ color: "#64748b" }}>
+                  <td colSpan={7} className="py-12 text-center" style={{ color: "#64748b" }}>
                     Cargando datos P2P…
                   </td>
                 </tr>
@@ -406,11 +417,12 @@ export default function Home() {
                     className="ml-auto font-mono text-lg font-bold tabular-nums shrink-0"
                     style={{ color: b.activo ? "#f59e0b" : "#334155" }}
                   >
-                    {formatBs(b.precioPromedio)}
+                    {formatBs(b.mejorPrecio)}
                   </span>
                 </div>
                 {b.activo && (
                   <div className="flex gap-4 ml-12 text-[11px]" style={{ color: "#64748b" }}>
+                    <span>Prom: {formatBs(b.precioPromedio)}</span>
                     <span>{b.cantidadAnuncios} anuncios</span>
                     <span>{formatVol(b.volumenDisponible)} USDT</span>
                   </div>
