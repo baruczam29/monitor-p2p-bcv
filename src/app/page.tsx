@@ -45,19 +45,16 @@ const BANK_GROUPS: { display: string; methods: string[] }[] = [
   { display: "Provincial / BBVA", methods: ["Provincial", "BBVA"] },
   { display: "BNC", methods: ["BNC Banco Nacional de Crédito"] },
   { display: "Bancamiga", methods: ["Bancamiga"] },
-  { display: "BDT", methods: ["Banco Digital de los Trabajadores"] },
+  { display: "BDT", methods: ["Banco Digital de los Trabajadores", "Banco del Tesoro"] },
   { display: "Banplus", methods: ["Banplus"] },
-  { display: "Plaza", methods: ["Plaza"] },
+  { display: "Banco Plaza", methods: ["Banco Plaza", "Plaza"] },
   { display: "Banco Activo", methods: ["Banco Activo"] },
-  { display: "BDV", methods: ["Banco de Venezuela", "Bank Transfer"] },
+  { display: "BDV", methods: ["Banco de Venezuela", "Bank Transfer", "Pago Movil"] },
 ];
 
 function findApiBank(apiBanks: BankStats[], method: string): BankStats | undefined {
   const m = method.toLowerCase();
-  return apiBanks.find((b) => {
-    const a = b.banco.toLowerCase();
-    return a === m || a.includes(m) || m.includes(a);
-  });
+  return apiBanks.find((b) => b.banco.toLowerCase() === m);
 }
 
 function mergeGroup(apiBanks: BankStats[], methods: string[]): { stats: BankStats; activo: boolean } | null {

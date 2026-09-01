@@ -53,7 +53,8 @@ async function fetchPage(page: number): Promise<BinanceAd[]> {
 
 export async function GET() {
   try {
-    const pages = await Promise.all([fetchPage(1), fetchPage(2), fetchPage(3)]);
+    const pageNums = Array.from({ length: 10 }, (_, i) => i + 1);
+    const pages = await Promise.all(pageNums.map(fetchPage));
     const allAds = pages.flat();
 
     const bankMap = new Map<string, { prices: number[]; volume: number }>();
