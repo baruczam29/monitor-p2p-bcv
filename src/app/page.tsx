@@ -37,7 +37,7 @@ interface P2pResponse {
 
 interface RankedBank extends BankStats {
   posicion: number;
-  cambio: number; // positive = subió, negative = bajó, 0 = igual
+  cambio: number;
   activo: boolean;
 }
 
@@ -147,7 +147,7 @@ function BankBadge({ name }: { name: string }) {
   if (!brand) return null;
   return (
     <span
-      className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold shrink-0"
+      className="inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-[10px] sm:text-xs font-bold shrink-0"
       style={{ backgroundColor: brand.color, color: "#fff" }}
     >
       {brand.abbr}
@@ -158,7 +158,7 @@ function BankBadge({ name }: { name: string }) {
 function StatusDot({ ok }: { ok: boolean }) {
   return (
     <span
-      className="inline-block w-2.5 h-2.5 rounded-full"
+      className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
       style={{ backgroundColor: ok ? "#22c55e" : "#ef4444" }}
     />
   );
@@ -261,47 +261,34 @@ export default function Home() {
   }, [fetchBcv, fetchP2p]);
 
   return (
-    <main className="flex-1 p-4 md:p-6 max-w-5xl mx-auto w-full">
+    <main className="flex-1 p-3 sm:p-4 md:p-6 max-w-5xl mx-auto w-full">
       {/* Header */}
-      <header className="flex items-center justify-between mb-4">
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+      <header className="flex items-center justify-between mb-3 sm:mb-4">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">
           Monitor P2P &amp; BCV
         </h1>
         <div
-          className="text-xl md:text-2xl font-mono tabular-nums"
+          className="text-lg sm:text-xl md:text-2xl font-mono tabular-nums"
           style={{ color: "#3b82f6" }}
         >
           {clock}
         </div>
       </header>
 
-      {/* BCV compact bar */}
+      {/* BCV rates — grid on mobile, inline on desktop */}
       <div
-        className="rounded-lg border px-4 py-3 mb-5 flex flex-wrap items-center gap-x-8 gap-y-2"
+        className="rounded-lg border px-3 sm:px-4 py-2.5 sm:py-3 mb-3 sm:mb-5 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-x-4 sm:gap-x-8 gap-y-2"
         style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
       >
-        <BcvPill
-          label="USD Oficial"
-          value={bcv?.usd.promedio ?? null}
-          color="#22c55e"
-        />
-        <BcvPill
-          label="USD Paralelo"
-          value={bcv?.paralelo.promedio ?? null}
-          color="#f59e0b"
-        />
-        <BcvPill
-          label="EUR Oficial"
-          value={bcv?.eur.promedio ?? null}
-          color="#8b5cf6"
-        />
+        <BcvPill label="USD Oficial" value={bcv?.usd.promedio ?? null} color="#22c55e" />
+        <BcvPill label="USD Paralelo" value={bcv?.paralelo.promedio ?? null} color="#f59e0b" />
+        <BcvPill label="EUR Oficial" value={bcv?.eur.promedio ?? null} color="#8b5cf6" />
         {bcv?.usd.promedio && bcv?.paralelo.promedio && (
-          <span className="text-sm" style={{ color: "#64748b" }}>
+          <span className="text-xs sm:text-sm" style={{ color: "#64748b" }}>
             Brecha:{" "}
             <span className="font-mono font-semibold" style={{ color: "#f87171" }}>
               {(
-                ((bcv.paralelo.promedio - bcv.usd.promedio) /
-                  bcv.usd.promedio) *
+                ((bcv.paralelo.promedio - bcv.usd.promedio) / bcv.usd.promedio) *
                 100
               ).toFixed(1)}
               %
@@ -312,20 +299,22 @@ export default function Home() {
 
       {/* P2P Table — main content */}
       <section
-        className="rounded-xl border p-4 md:p-6 mb-4"
+        className="rounded-xl border p-3 sm:p-4 md:p-6 mb-3 sm:mb-4"
         style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base md:text-lg font-semibold">
-            Ranking bancos &middot; Binance P2P (USDT &rarr; VES)
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h2 className="text-sm sm:text-base md:text-lg font-semibold">
+            Ranking bancos &middot; P2P (USDT &rarr; VES)
           </h2>
           {totalAds > 0 && (
-            <span className="text-xs" style={{ color: "#64748b" }}>
+            <span className="text-[10px] sm:text-xs" style={{ color: "#64748b" }}>
               {totalAds} anuncios
             </span>
           )}
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Desktop/tablet table */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr
@@ -346,15 +335,9 @@ export default function Home() {
                   <tr
                     key={b.banco}
                     className="border-b transition-opacity duration-300"
-                    style={{
-                      borderColor: "#1e293b",
-                      opacity: b.activo ? 1 : 0.35,
-                    }}
+                    style={{ borderColor: "#1e293b", opacity: b.activo ? 1 : 0.35 }}
                   >
-                    <td
-                      className="py-3 pr-3 font-mono text-sm"
-                      style={{ color: "#475569" }}
-                    >
+                    <td className="py-3 pr-3 font-mono text-sm" style={{ color: "#475569" }}>
                       {b.posicion}
                     </td>
                     <td className="py-3 pr-3 text-sm">
@@ -388,11 +371,7 @@ export default function Home() {
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="py-12 text-center"
-                    style={{ color: "#64748b" }}
-                  >
+                  <td colSpan={6} className="py-12 text-center" style={{ color: "#64748b" }}>
                     Cargando datos P2P…
                   </td>
                 </tr>
@@ -400,49 +379,87 @@ export default function Home() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile card list */}
+        <div className="sm:hidden flex flex-col gap-2">
+          {ranked.length > 0 ? (
+            ranked.map((b) => (
+              <div
+                key={b.banco}
+                className="rounded-lg border px-3 py-2.5 transition-opacity duration-300"
+                style={{
+                  borderColor: "#1e293b",
+                  backgroundColor: "#0f1623",
+                  opacity: b.activo ? 1 : 0.35,
+                }}
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="font-mono text-xs w-5 shrink-0" style={{ color: "#475569" }}>
+                    {b.posicion}
+                  </span>
+                  <span className="text-xs w-5 shrink-0">
+                    <ChangeIndicator cambio={b.cambio} />
+                  </span>
+                  <BankBadge name={b.banco} />
+                  <span className="font-medium text-sm truncate">{b.banco}</span>
+                  <span
+                    className="ml-auto font-mono text-lg font-bold tabular-nums shrink-0"
+                    style={{ color: b.activo ? "#f59e0b" : "#334155" }}
+                  >
+                    {formatBs(b.precioPromedio)}
+                  </span>
+                </div>
+                {b.activo && (
+                  <div className="flex gap-4 ml-12 text-[11px]" style={{ color: "#64748b" }}>
+                    <span>{b.cantidadAnuncios} anuncios</span>
+                    <span>{formatVol(b.volumenDisponible)} USDT</span>
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="py-12 text-center text-sm" style={{ color: "#64748b" }}>
+              Cargando datos P2P…
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Market totals */}
       {totalAds > 0 && (
         <div
-          className="rounded-lg border px-4 py-3 mb-4 flex flex-wrap items-center gap-x-8 gap-y-2"
+          className="rounded-lg border px-3 sm:px-4 py-2.5 sm:py-3 mb-3 sm:mb-4 flex flex-wrap items-center gap-x-4 sm:gap-x-8 gap-y-1.5"
           style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
         >
-          <span className="text-xs uppercase tracking-wider" style={{ color: "#475569" }}>
+          <span className="text-[10px] sm:text-xs uppercase tracking-wider" style={{ color: "#475569" }}>
             Mercado P2P total
           </span>
-          <span className="flex items-center gap-2">
-            <span className="text-sm" style={{ color: "#94a3b8" }}>Anuncios</span>
-            <span className="font-mono font-bold text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
+          <span className="flex items-center gap-1.5 sm:gap-2">
+            <span className="text-xs sm:text-sm" style={{ color: "#94a3b8" }}>Anuncios</span>
+            <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
               {totalAds}
             </span>
           </span>
-          <span className="flex items-center gap-2">
-            <span className="text-sm" style={{ color: "#94a3b8" }}>Volumen disponible</span>
-            <span className="font-mono font-bold text-lg tabular-nums" style={{ color: "#3b82f6" }}>
+          <span className="flex items-center gap-1.5 sm:gap-2">
+            <span className="text-xs sm:text-sm" style={{ color: "#94a3b8" }}>Volumen</span>
+            <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#3b82f6" }}>
               {totalVolumeUsdt.toLocaleString("es-VE", { maximumFractionDigits: 0 })}
             </span>
-            <span className="text-xs" style={{ color: "#475569" }}>USDT</span>
+            <span className="text-[10px] sm:text-xs" style={{ color: "#475569" }}>USDT</span>
           </span>
         </div>
       )}
 
       {/* Status bar */}
       <footer
-        className="rounded-lg border px-4 py-2 flex flex-wrap items-center gap-4 text-xs"
-        style={{
-          backgroundColor: "#131926",
-          borderColor: "#1e293b",
-          color: "#64748b",
-        }}
+        className="rounded-lg border px-3 sm:px-4 py-2 flex flex-wrap items-center gap-3 sm:gap-4 text-[10px] sm:text-xs"
+        style={{ backgroundColor: "#131926", borderColor: "#1e293b", color: "#64748b" }}
       >
         <span className="flex items-center gap-1.5">
-          <StatusDot ok={bcvOk} /> BCV{" "}
-          {lastBcvTime ? `· ${lastBcvTime}` : ""}
+          <StatusDot ok={bcvOk} /> BCV {lastBcvTime ? `· ${lastBcvTime}` : ""}
         </span>
         <span className="flex items-center gap-1.5">
-          <StatusDot ok={p2pOk} /> P2P{" "}
-          {lastP2pTime ? `· ${lastP2pTime}` : ""}
+          <StatusDot ok={p2pOk} /> P2P {lastP2pTime ? `· ${lastP2pTime}` : ""}
         </span>
         <span className="ml-auto">Refresh cada 60s</span>
       </footer>
@@ -460,17 +477,17 @@ function BcvPill({
   color: string;
 }) {
   return (
-    <span className="flex items-center gap-2">
-      <span className="text-sm" style={{ color: "#94a3b8" }}>
+    <span className="flex items-center gap-1.5 sm:gap-2">
+      <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>
         {label}
       </span>
       <span
-        className="font-mono font-bold text-lg md:text-xl tabular-nums"
+        className="font-mono font-bold text-base sm:text-lg md:text-xl tabular-nums"
         style={{ color }}
       >
         {formatBs(value)}
       </span>
-      <span className="text-xs" style={{ color: "#475569" }}>
+      <span className="text-[10px] sm:text-xs" style={{ color: "#475569" }}>
         Bs
       </span>
     </span>
