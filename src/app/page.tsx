@@ -189,6 +189,39 @@ function ChangeIndicator({ cambio }: { cambio: number }) {
   );
 }
 
+async function logToSheet(bcvData: BcvResponse | null, rankedBanks: RankedBank[], ads: number, volume: number) {
+  try {
+    const bancos = BANK_GROUPS.map((group) => {
+      const bank = rankedBanks.find((b) => b.banco === group.display);
+      if (!bank || !bank.activo) {
+        return { banco: group.display, mejorPrecio: null, promedio: null, anuncios: 0, volumen: 0 };
+      }
+      return {
+        banco: group.display,
+        mejorPrecio: bank.mejorPrecio,
+        promedio: bank.precioPromedio,
+        anuncios: bank.cantidadAnuncios,
+        volumen: bank.volumenDisponible,
+      };
+    });
+
+    await fetch("/api/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usdOficial: bcvData?.usd.promedio ?? null,
+        usdParalelo: bcvData?.paralelo.promedio ?? null,
+        eurOficial: bcvData?.eur.promedio ?? null,
+        totalAnuncios: ads,
+        totalVolumenUsdt: Math.round(volume * 100) / 100,
+        bancos,
+      }),
+    });
+  } catch {
+    // logging silencioso
+  }
+}
+
 export default function Home() {
   const [bcv, setBcv] = useState<BcvResponse | null>(null);
   const [ranked, setRanked] = useState<RankedBank[]>([]);
@@ -201,6 +234,7 @@ export default function Home() {
   const [clock, setClock] = useState("");
   const prevRanking = useRef<Map<string, number>>(new Map());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const latestBcv = useRef<BcvResponse | null>(null);
 
   const fetchBcv = useCallback(async () => {
     try {
@@ -208,6 +242,7 @@ export default function Home() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: BcvResponse = await res.json();
       setBcv(data);
+      latestBcv.current = data;
       setBcvOk(true);
       setLastBcvTime(new Date().toLocaleTimeString("es-VE"));
     } catch {
@@ -233,6 +268,8 @@ export default function Home() {
 
       setP2pOk(true);
       setLastP2pTime(new Date().toLocaleTimeString("es-VE"));
+
+      logToSheet(latestBcv.current, newRanked, data.totalAds, data.totalVolumeUsdt);
     } catch {
       setP2pOk(false);
     }
