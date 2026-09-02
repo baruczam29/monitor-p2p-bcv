@@ -16,14 +16,17 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      redirect: "manual",
     });
 
-    if (!res.ok) {
-      const text = await res.text();
-      return NextResponse.json({ error: `Webhook failed: ${res.status}`, detail: text }, { status: 502 });
+    // Google Apps Script executes doPost on the initial POST,
+    // then responds with 302 redirect. The 302 means the script ran.
+    if (res.status === 302 || res.status === 200) {
+      return NextResponse.json({ ok: true, timestamp: payload.timestamp });
     }
 
-    return NextResponse.json({ ok: true, timestamp: payload.timestamp });
+    const text = await res.text().catch(() => "");
+    return NextResponse.json({ error: `Webhook returned ${res.status}`, detail: text.slice(0, 200) }, { status: 502 });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
