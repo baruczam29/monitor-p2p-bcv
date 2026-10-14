@@ -3,6 +3,131 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 
+interface HistoryEntry {
+  t: number;
+  usd: number | null;
+  par: number | null;
+  eur: number | null;
+  b: Record<string, [number | null, number | null]>;
+}
+
+interface MacroData {
+  cierreAnterior: number | null;
+  apertura: number | null;
+  actual: number | null;
+  variacionVsAyer: number | null;
+  variacionIntradiaria: number | null;
+  rangoHigh: number | null;
+  rangoLow: number | null;
+  label: "pre-market" | "market-open" | "market-closed";
+}
+
+function getVetComponents(utcEpochSec: number) {
+  const vetMs = (utcEpochSec - 4 * 3600) * 1000;
+  const d = new Date(vetMs);
+  return {
+    day: d.toISOString().split("T")[0],
+    hour: d.getUTCHours(),
+    minute: d.getUTCMinutes(),
+  };
+}
+
+function historyMarketAvg(entry: HistoryEntry): number | null {
+  const values: number[] = [];
+  for (const key of Object.keys(entry.b)) {
+    const pair = entry.b[key];
+    if (pair && pair[1]) values.push(pair[1]);
+  }
+  if (values.length === 0) return null;
+  return values.reduce((s, v) => s + v, 0) / values.length;
+}
+
+function computeMacroData(history: HistoryEntry[]): MacroData {
+  const OPEN_H = 8, OPEN_M = 30, CLOSE_H = 18, CLOSE_M = 30;
+  const nowUtcSec = Math.floor(Date.now() / 1000);
+  const nowVet = getVetComponents(nowUtcSec);
+  const today = nowVet.day;
+
+  const byDay = new Map<string, { t: number; avg: number; vetH: number; vetM: number }[]>();
+  for (const entry of history) {
+    const avg = historyMarketAvg(entry);
+    if (avg === null) continue;
+    const vet = getVetComponents(entry.t);
+    const arr = byDay.get(vet.day) || [];
+    arr.push({ t: entry.t, avg, vetH: vet.hour, vetM: vet.minute });
+    byDay.set(vet.day, arr);
+  }
+
+  for (const [, entries] of byDay) entries.sort((a, b) => a.t - b.t);
+
+  const days = [...byDay.keys()].sort();
+  const prevDays = days.filter((d) => d < today);
+  const prevDay = prevDays.length > 0 ? prevDays[prevDays.length - 1] : null;
+
+  let cierreAnterior: number | null = null;
+  if (prevDay) {
+    const prevEntries = byDay.get(prevDay)!;
+    const beforeClose = prevEntries.filter(
+      (e) => e.vetH < CLOSE_H || (e.vetH === CLOSE_H && e.vetM <= CLOSE_M)
+    );
+    const candidates = beforeClose.length > 0 ? beforeClose : prevEntries;
+    cierreAnterior = candidates[candidates.length - 1].avg;
+  }
+
+  const todayEntries = byDay.get(today) || [];
+
+  let apertura: number | null = null;
+  for (const e of todayEntries) {
+    if (e.vetH > OPEN_H || (e.vetH === OPEN_H && e.vetM >= OPEN_M)) {
+      apertura = e.avg;
+      break;
+    }
+  }
+
+  const nowMin = nowVet.hour * 60 + nowVet.minute;
+  const openMin = OPEN_H * 60 + OPEN_M;
+  const closeMin = CLOSE_H * 60 + CLOSE_M;
+
+  let actual: number | null = null;
+  let label: MacroData["label"];
+
+  if (nowMin < openMin) {
+    label = "pre-market";
+    actual = cierreAnterior;
+  } else if (nowMin <= closeMin) {
+    label = "market-open";
+    actual = todayEntries.length > 0 ? todayEntries[todayEntries.length - 1].avg : null;
+  } else {
+    label = "market-closed";
+    if (todayEntries.length > 0) {
+      const bc = todayEntries.filter(
+        (e) => e.vetH < CLOSE_H || (e.vetH === CLOSE_H && e.vetM <= CLOSE_M)
+      );
+      actual = bc.length > 0 ? bc[bc.length - 1].avg : todayEntries[todayEntries.length - 1].avg;
+    }
+  }
+
+  let variacionVsAyer: number | null = null;
+  if (cierreAnterior && actual && label !== "pre-market") {
+    variacionVsAyer = ((actual - cierreAnterior) / cierreAnterior) * 100;
+  }
+
+  let variacionIntradiaria: number | null = null;
+  if (apertura && actual && label === "market-open") {
+    variacionIntradiaria = ((actual - apertura) / apertura) * 100;
+  }
+
+  let rangoHigh: number | null = null;
+  let rangoLow: number | null = null;
+  if (todayEntries.length > 0) {
+    const avgs = todayEntries.map((e) => e.avg);
+    rangoHigh = Math.max(...avgs);
+    rangoLow = Math.min(...avgs);
+  }
+
+  return { cierreAnterior, apertura, actual, variacionVsAyer, variacionIntradiaria, rangoHigh, rangoLow, label };
+}
+
 interface CurrencyData {
   compra: number | null;
   venta: number | null;
@@ -276,10 +401,24 @@ export default function Home() {
   const [lastBcvTime, setLastBcvTime] = useState<string | null>(null);
   const [lastP2pTime, setLastP2pTime] = useState<string | null>(null);
   const [clock, setClock] = useState("");
+  const [macro, setMacro] = useState<MacroData | null>(null);
   const prevRanking = useRef<Map<string, number>>(new Map());
   const prevPricesRef = useRef<Map<string, number>>(new Map());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const latestBcv = useRef<BcvResponse | null>(null);
+
+  const fetchHistory = useCallback(async () => {
+    try {
+      const res = await fetch("/api/history");
+      if (!res.ok) return;
+      const json = await res.json();
+      if (json.data && Array.isArray(json.data)) {
+        setMacro(computeMacroData(json.data));
+      }
+    } catch {
+      // history is optional — macro banner simply won't show
+    }
+  }, []);
 
   const fetchBcv = useCallback(async () => {
     try {
@@ -345,14 +484,16 @@ export default function Home() {
   useEffect(() => {
     fetchBcv();
     fetchP2p();
+    fetchHistory();
     intervalRef.current = setInterval(() => {
       fetchBcv();
       fetchP2p();
+      fetchHistory();
     }, 60_000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [fetchBcv, fetchP2p]);
+  }, [fetchBcv, fetchP2p, fetchHistory]);
 
   return (
     <main className="flex-1 p-3 sm:p-4 md:p-6 max-w-5xl mx-auto w-full">
@@ -403,6 +544,9 @@ export default function Home() {
           </span>
         )}
       </div>
+
+      {/* Macro banner — market data */}
+      <MacroBanner macro={macro} />
 
       {/* P2P Table — main content */}
       <section
@@ -594,6 +738,189 @@ export default function Home() {
         <span className="ml-auto">Refresh cada 60s</span>
       </footer>
     </main>
+  );
+}
+
+function variacionColor(v: number | null): string {
+  if (v === null) return "#64748b";
+  if (Math.abs(v) < 0.05) return "#f59e0b";
+  return v > 0 ? "#22c55e" : "#ef4444";
+}
+
+function variacionSign(v: number | null): string {
+  if (v === null) return "--";
+  const sign = v > 0 ? "+" : "";
+  return `${sign}${v.toFixed(2)}%`;
+}
+
+function MacroBanner({ macro }: { macro: MacroData | null }) {
+  if (!macro) return null;
+
+  const heroLabel =
+    macro.label === "pre-market"
+      ? "Cierre anterior"
+      : macro.label === "market-open"
+        ? "Actual vs ayer"
+        : "Cierre hoy vs ayer";
+
+  const statusLabel =
+    macro.label === "pre-market"
+      ? "Pre-mercado"
+      : macro.label === "market-open"
+        ? "Mercado abierto"
+        : "Mercado cerrado";
+
+  const statusColor =
+    macro.label === "market-open" ? "#22c55e" : "#f59e0b";
+
+  const showVariacion = macro.label !== "pre-market";
+
+  return (
+    <div
+      className="rounded-lg border px-3 sm:px-4 py-3 sm:py-4 mb-3 sm:mb-5"
+      style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
+    >
+      {/* Status pill */}
+      <div className="flex items-center gap-2 mb-2.5 sm:mb-3">
+        <span
+          className="inline-block w-2 h-2 rounded-full"
+          style={{ backgroundColor: statusColor }}
+        />
+        <span className="text-[10px] sm:text-xs uppercase tracking-wider font-medium" style={{ color: statusColor }}>
+          {statusLabel}
+        </span>
+        <span className="text-[10px] sm:text-xs" style={{ color: "#475569" }}>
+          {heroLabel}
+        </span>
+      </div>
+
+      {/* Desktop layout */}
+      <div className="hidden sm:flex items-end gap-6 sm:gap-8">
+        {/* Cierre anterior */}
+        <div className="flex flex-col">
+          <span className="text-[10px] sm:text-xs uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>
+            Cierre anterior
+          </span>
+          <span className="font-mono font-bold text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
+            {macro.cierreAnterior !== null ? formatBs(macro.cierreAnterior) : "--"}
+          </span>
+        </div>
+
+        {/* Variacion hero */}
+        {showVariacion && (
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>
+              Variacion vs ayer
+            </span>
+            <span
+              className="font-mono font-bold text-2xl md:text-3xl tabular-nums"
+              style={{ color: variacionColor(macro.variacionVsAyer) }}
+            >
+              {variacionSign(macro.variacionVsAyer)}
+            </span>
+            {macro.actual !== null && (
+              <span className="font-mono text-sm tabular-nums mt-0.5" style={{ color: "#94a3b8" }}>
+                Bs {formatBs(macro.actual)}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Apertura */}
+        {macro.apertura !== null && (
+          <div className="flex flex-col">
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>
+              Apertura hoy
+            </span>
+            <span className="font-mono font-bold text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
+              {formatBs(macro.apertura)}
+            </span>
+            {macro.variacionIntradiaria !== null && (
+              <span
+                className="font-mono text-xs tabular-nums mt-0.5"
+                style={{ color: variacionColor(macro.variacionIntradiaria) }}
+              >
+                {variacionSign(macro.variacionIntradiaria)} intradiario
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Spacer + rango */}
+        {macro.rangoHigh !== null && macro.rangoLow !== null && (
+          <div className="flex flex-col ml-auto">
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>
+              Rango del dia
+            </span>
+            <span className="font-mono text-sm tabular-nums" style={{ color: "#94a3b8" }}>
+              {formatBs(macro.rangoLow)} – {formatBs(macro.rangoHigh)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile layout */}
+      <div className="sm:hidden">
+        {/* Hero variacion */}
+        {showVariacion && (
+          <div className="text-center mb-3">
+            <span
+              className="font-mono font-bold text-3xl tabular-nums block"
+              style={{ color: variacionColor(macro.variacionVsAyer) }}
+            >
+              {variacionSign(macro.variacionVsAyer)}
+            </span>
+            {macro.actual !== null && (
+              <span className="font-mono text-sm tabular-nums" style={{ color: "#94a3b8" }}>
+                Bs {formatBs(macro.actual)}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Grid: cierre + apertura */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <span className="text-[10px] uppercase tracking-wider block mb-0.5" style={{ color: "#64748b" }}>
+              Cierre anterior
+            </span>
+            <span className="font-mono font-bold text-base tabular-nums" style={{ color: "#e8eaf0" }}>
+              {macro.cierreAnterior !== null ? formatBs(macro.cierreAnterior) : "--"}
+            </span>
+          </div>
+          {macro.apertura !== null && (
+            <div>
+              <span className="text-[10px] uppercase tracking-wider block mb-0.5" style={{ color: "#64748b" }}>
+                Apertura hoy
+              </span>
+              <span className="font-mono font-bold text-base tabular-nums" style={{ color: "#e8eaf0" }}>
+                {formatBs(macro.apertura)}
+              </span>
+              {macro.variacionIntradiaria !== null && (
+                <span
+                  className="font-mono text-[10px] tabular-nums block mt-0.5"
+                  style={{ color: variacionColor(macro.variacionIntradiaria) }}
+                >
+                  {variacionSign(macro.variacionIntradiaria)} intradiario
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Rango */}
+        {macro.rangoHigh !== null && macro.rangoLow !== null && (
+          <div className="mt-2 pt-2" style={{ borderTop: "1px solid #1e293b" }}>
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: "#64748b" }}>
+              Rango:{" "}
+            </span>
+            <span className="font-mono text-xs tabular-nums" style={{ color: "#94a3b8" }}>
+              {formatBs(macro.rangoLow)} – {formatBs(macro.rangoHigh)}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
