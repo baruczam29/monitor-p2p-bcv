@@ -756,170 +756,53 @@ function variacionSign(v: number | null): string {
 function MacroBanner({ macro }: { macro: MacroData | null }) {
   if (!macro) return null;
 
-  const heroLabel =
-    macro.label === "pre-market"
-      ? "Cierre anterior"
-      : macro.label === "market-open"
-        ? "Actual vs ayer"
-        : "Cierre hoy vs ayer";
-
-  const statusLabel =
-    macro.label === "pre-market"
-      ? "Pre-mercado"
-      : macro.label === "market-open"
-        ? "Mercado abierto"
-        : "Mercado cerrado";
-
-  const statusColor =
-    macro.label === "market-open" ? "#22c55e" : "#f59e0b";
-
   const showVariacion = macro.label !== "pre-market";
 
   return (
     <div
-      className="rounded-lg border px-3 sm:px-4 py-3 sm:py-4 mb-3 sm:mb-5"
+      className="rounded-lg border px-3 sm:px-4 py-2.5 sm:py-3 mb-3 sm:mb-5 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-x-4 sm:gap-x-8 gap-y-2"
       style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
     >
-      {/* Status pill */}
-      <div className="flex items-center gap-2 mb-2.5 sm:mb-3">
-        <span
-          className="inline-block w-2 h-2 rounded-full"
-          style={{ backgroundColor: statusColor }}
-        />
-        <span className="text-[10px] sm:text-xs uppercase tracking-wider font-medium" style={{ color: statusColor }}>
-          {statusLabel}
+      {/* Ayer */}
+      <span className="flex items-center gap-1.5 sm:gap-2">
+        <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Ayer</span>
+        <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
+          {macro.cierreAnterior !== null ? formatBs(macro.cierreAnterior) : "--"}
         </span>
-        <span className="text-[10px] sm:text-xs" style={{ color: "#475569" }}>
-          {heroLabel}
+      </span>
+
+      {/* Hoy */}
+      {showVariacion && macro.actual !== null && (
+        <span className="flex items-center gap-1.5 sm:gap-2">
+          <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Hoy</span>
+          <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
+            {formatBs(macro.actual)}
+          </span>
         </span>
-      </div>
+      )}
 
-      {/* Desktop layout */}
-      <div className="hidden sm:flex items-end gap-6 sm:gap-8">
-        {/* Cierre anterior */}
-        <div className="flex flex-col">
-          <span className="text-[10px] sm:text-xs uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>
-            Cierre anterior
+      {/* Variacion % */}
+      {showVariacion && (
+        <span className="flex items-center gap-1.5 sm:gap-2">
+          <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Variacion</span>
+          <span
+            className="font-mono font-bold text-base sm:text-lg tabular-nums"
+            style={{ color: variacionColor(macro.variacionVsAyer) }}
+          >
+            {variacionSign(macro.variacionVsAyer)}
           </span>
-          <span className="font-mono font-bold text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
-            {macro.cierreAnterior !== null ? formatBs(macro.cierreAnterior) : "--"}
+        </span>
+      )}
+
+      {/* Rango */}
+      {macro.rangoHigh !== null && macro.rangoLow !== null && (
+        <span className="flex items-center gap-1.5 sm:gap-2 col-span-2 sm:col-span-1">
+          <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Rango</span>
+          <span className="font-mono text-sm sm:text-base tabular-nums" style={{ color: "#64748b" }}>
+            {formatBs(macro.rangoLow)} – {formatBs(macro.rangoHigh)}
           </span>
-        </div>
-
-        {/* Variacion hero */}
-        {showVariacion && (
-          <div className="flex flex-col items-center">
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>
-              Variacion vs ayer
-            </span>
-            <span
-              className="font-mono font-bold text-2xl md:text-3xl tabular-nums"
-              style={{ color: variacionColor(macro.variacionVsAyer) }}
-            >
-              {variacionSign(macro.variacionVsAyer)}
-            </span>
-            {macro.actual !== null && (
-              <span className="font-mono text-sm tabular-nums mt-0.5" style={{ color: "#94a3b8" }}>
-                Bs {formatBs(macro.actual)}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Apertura */}
-        {macro.apertura !== null && (
-          <div className="flex flex-col">
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>
-              Apertura hoy
-            </span>
-            <span className="font-mono font-bold text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
-              {formatBs(macro.apertura)}
-            </span>
-            {macro.variacionIntradiaria !== null && (
-              <span
-                className="font-mono text-xs tabular-nums mt-0.5"
-                style={{ color: variacionColor(macro.variacionIntradiaria) }}
-              >
-                {variacionSign(macro.variacionIntradiaria)} intradiario
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Spacer + rango */}
-        {macro.rangoHigh !== null && macro.rangoLow !== null && (
-          <div className="flex flex-col ml-auto">
-            <span className="text-[10px] sm:text-xs uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>
-              Rango del dia
-            </span>
-            <span className="font-mono text-sm tabular-nums" style={{ color: "#94a3b8" }}>
-              {formatBs(macro.rangoLow)} – {formatBs(macro.rangoHigh)}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Mobile layout */}
-      <div className="sm:hidden">
-        {/* Hero variacion */}
-        {showVariacion && (
-          <div className="text-center mb-3">
-            <span
-              className="font-mono font-bold text-3xl tabular-nums block"
-              style={{ color: variacionColor(macro.variacionVsAyer) }}
-            >
-              {variacionSign(macro.variacionVsAyer)}
-            </span>
-            {macro.actual !== null && (
-              <span className="font-mono text-sm tabular-nums" style={{ color: "#94a3b8" }}>
-                Bs {formatBs(macro.actual)}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Grid: cierre + apertura */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <span className="text-[10px] uppercase tracking-wider block mb-0.5" style={{ color: "#64748b" }}>
-              Cierre anterior
-            </span>
-            <span className="font-mono font-bold text-base tabular-nums" style={{ color: "#e8eaf0" }}>
-              {macro.cierreAnterior !== null ? formatBs(macro.cierreAnterior) : "--"}
-            </span>
-          </div>
-          {macro.apertura !== null && (
-            <div>
-              <span className="text-[10px] uppercase tracking-wider block mb-0.5" style={{ color: "#64748b" }}>
-                Apertura hoy
-              </span>
-              <span className="font-mono font-bold text-base tabular-nums" style={{ color: "#e8eaf0" }}>
-                {formatBs(macro.apertura)}
-              </span>
-              {macro.variacionIntradiaria !== null && (
-                <span
-                  className="font-mono text-[10px] tabular-nums block mt-0.5"
-                  style={{ color: variacionColor(macro.variacionIntradiaria) }}
-                >
-                  {variacionSign(macro.variacionIntradiaria)} intradiario
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Rango */}
-        {macro.rangoHigh !== null && macro.rangoLow !== null && (
-          <div className="mt-2 pt-2" style={{ borderTop: "1px solid #1e293b" }}>
-            <span className="text-[10px] uppercase tracking-wider" style={{ color: "#64748b" }}>
-              Rango:{" "}
-            </span>
-            <span className="font-mono text-xs tabular-nums" style={{ color: "#94a3b8" }}>
-              {formatBs(macro.rangoLow)} – {formatBs(macro.rangoHigh)}
-            </span>
-          </div>
-        )}
-      </div>
+        </span>
+      )}
     </div>
   );
 }
