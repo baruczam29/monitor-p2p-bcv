@@ -168,6 +168,14 @@ function BankBadge({ name }: { name: string }) {
   );
 }
 
+function spreadColor(mejor: number, promedio: number): string {
+  if (mejor === 0 || promedio === 0) return "#334155";
+  const spread = ((promedio - mejor) / mejor) * 100;
+  if (spread < 0.05) return "#f59e0b";
+  if (spread <= 0.15) return "#22c55e";
+  return "#ef4444";
+}
+
 function StatusDot({ ok }: { ok: boolean }) {
   return (
     <span
@@ -446,7 +454,7 @@ export default function Home() {
                     </td>
                     <td
                       className="py-3 pr-3 text-right font-mono text-sm"
-                      style={{ color: b.activo ? "#64748b" : "#334155" }}
+                      style={{ color: b.activo ? spreadColor(b.mejorPrecio, b.precioPromedio) : "#334155" }}
                     >
                       {formatBs(b.precioPromedio)}
                     </td>
@@ -507,7 +515,7 @@ export default function Home() {
                 </div>
                 {b.activo && (
                   <div className="flex gap-4 ml-12 text-[11px]" style={{ color: "#64748b" }}>
-                    <span>Prom: {formatBs(b.precioPromedio)}</span>
+                    <span style={{ color: spreadColor(b.mejorPrecio, b.precioPromedio) }}>Prom: {formatBs(b.precioPromedio)}</span>
                     <span>{b.cantidadAnuncios} anuncios</span>
                     <span>{formatVol(b.volumenDisponible)} USDT</span>
                   </div>
