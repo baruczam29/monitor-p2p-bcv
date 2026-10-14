@@ -58,16 +58,44 @@ function aggregateSeries(
     }));
 }
 
+function aggregateOHLC(
+  raw: { time: number; value: number }[],
+  bucketMinutes: number
+): { time: number; open: number; high: number; low: number; close: number }[] {
+  const bucketSec = Math.max(bucketMinutes, 15) * 60;
+  const buckets = new Map<number, number[]>();
+
+  for (const { time, value } of raw) {
+    if (!value) continue;
+    const key = Math.floor(time / bucketSec) * bucketSec;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key)!.push(value);
+  }
+
+  return Array.from(buckets.entries())
+    .sort((a, b) => a[0] - b[0])
+    .filter(([, values]) => values.length > 0)
+    .map(([time, values]) => ({
+      time,
+      open: values[0],
+      high: Math.max(...values),
+      low: Math.min(...values),
+      close: values[values.length - 1],
+    }));
+}
+
 export default function ChartsPage() {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<LWChart | null>(null);
   const seriesRefs = useRef<Map<string, unknown>>(new Map());
   const [data, setData] = useState<HistoryEntry[]>([]);
-  const [timeframe, setTimeframe] = useState(0); // index into TIMEFRAMES
+  const [timeframe, setTimeframe] = useState(0);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [metric, setMetric] = useState<"prom" | "mejor">("prom");
+  const [chartType, setChartType] = useState<"lineas" | "velas">("lineas");
+  const [selectedBank, setSelectedBank] = useState("Banesco");
 
   useEffect(() => {
     fetch("/api/history")
@@ -125,50 +153,119 @@ export default function ChartsPage() {
     const tf = TIMEFRAMES[timeframe];
     const valueIdx = metric === "mejor" ? 0 : 1;
 
-    for (const bank of BANKS) {
-      if (hidden.has(bank.key)) continue;
-
+    if (chartType === "velas") {
+      const bank = BANKS.find((b) => b.key === selectedBank);
       const rawPoints: { time: number; value: number }[] = [];
       for (const entry of data) {
-        const pair = entry.b[bank.key];
+        const pair = entry.b[selectedBank];
         if (pair && pair[valueIdx]) {
           rawPoints.push({ time: entry.t, value: pair[valueIdx]! });
         }
       }
 
-      if (rawPoints.length === 0) continue;
+      if (rawPoints.length > 0) {
+        const ohlc = aggregateOHLC(rawPoints, tf.minutes);
+        const series = chart.addCandlestickSeries({
+          upColor: "#22c55e",
+          downColor: "#ef4444",
+          borderUpColor: "#22c55e",
+          borderDownColor: "#ef4444",
+          wickUpColor: "#22c55e",
+          wickDownColor: "#ef4444",
+          title: selectedBank,
+          priceFormat: { type: "price", precision: 2, minMove: 0.01 },
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        series.setData(ohlc as any);
+        seriesRefs.current.set(selectedBank, series);
+      }
 
-      const aggregated = aggregateSeries(rawPoints, tf.minutes);
-      const series = chart.addLineSeries({
-        color: bank.color,
-        lineWidth: 2,
-        title: bank.key,
-        priceFormat: { type: "price", precision: 2, minMove: 0.01 },
-      });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      series.setData(aggregated as any);
-      seriesRefs.current.set(bank.key, series);
-    }
-
-    if (!hidden.has("BCV")) {
-      const bcvPoints: { time: number; value: number }[] = [];
-      for (const entry of data) {
-        if (entry.par) {
-          bcvPoints.push({ time: entry.t, value: entry.par });
+      if (!hidden.has("BCV")) {
+        const bcvPoints: { time: number; value: number }[] = [];
+        for (const entry of data) {
+          if (entry.par) bcvPoints.push({ time: entry.t, value: entry.par });
+        }
+        if (bcvPoints.length > 0) {
+          const aggregated = aggregateSeries(bcvPoints, Math.max(tf.minutes, 15));
+          const series = chart.addLineSeries({
+            color: "#f59e0b",
+            lineWidth: 1,
+            lineStyle: 2,
+            title: "USD Paralelo",
+            priceFormat: { type: "price", precision: 2, minMove: 0.01 },
+          });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          series.setData(aggregated as any);
+          seriesRefs.current.set("BCV", series);
         }
       }
-      if (bcvPoints.length > 0) {
-        const aggregated = aggregateSeries(bcvPoints, tf.minutes);
+
+      if (bank) {
+        const avgPoints: { time: number; value: number }[] = [];
+        const avgIdx = valueIdx === 0 ? 1 : 0;
+        for (const entry of data) {
+          const pair = entry.b[selectedBank];
+          if (pair && pair[avgIdx]) {
+            avgPoints.push({ time: entry.t, value: pair[avgIdx]! });
+          }
+        }
+        if (avgPoints.length > 0) {
+          const aggregated = aggregateSeries(avgPoints, Math.max(tf.minutes, 15));
+          const series = chart.addLineSeries({
+            color: bank.color,
+            lineWidth: 1,
+            lineStyle: 2,
+            title: metric === "mejor" ? "Promedio" : "Mejor precio",
+            priceFormat: { type: "price", precision: 2, minMove: 0.01 },
+          });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          series.setData(aggregated as any);
+        }
+      }
+    } else {
+      for (const bank of BANKS) {
+        if (hidden.has(bank.key)) continue;
+
+        const rawPoints: { time: number; value: number }[] = [];
+        for (const entry of data) {
+          const pair = entry.b[bank.key];
+          if (pair && pair[valueIdx]) {
+            rawPoints.push({ time: entry.t, value: pair[valueIdx]! });
+          }
+        }
+
+        if (rawPoints.length === 0) continue;
+
+        const aggregated = aggregateSeries(rawPoints, tf.minutes);
         const series = chart.addLineSeries({
-          color: "#f59e0b",
+          color: bank.color,
           lineWidth: 2,
-          lineStyle: 2,
-          title: "USD Paralelo",
+          title: bank.key,
           priceFormat: { type: "price", precision: 2, minMove: 0.01 },
         });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         series.setData(aggregated as any);
-        seriesRefs.current.set("BCV", series);
+        seriesRefs.current.set(bank.key, series);
+      }
+
+      if (!hidden.has("BCV")) {
+        const bcvPoints: { time: number; value: number }[] = [];
+        for (const entry of data) {
+          if (entry.par) bcvPoints.push({ time: entry.t, value: entry.par });
+        }
+        if (bcvPoints.length > 0) {
+          const aggregated = aggregateSeries(bcvPoints, tf.minutes);
+          const series = chart.addLineSeries({
+            color: "#f59e0b",
+            lineWidth: 2,
+            lineStyle: 2,
+            title: "USD Paralelo",
+            priceFormat: { type: "price", precision: 2, minMove: 0.01 },
+          });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          series.setData(aggregated as any);
+          seriesRefs.current.set("BCV", series);
+        }
       }
     }
 
@@ -184,7 +281,7 @@ export default function ChartsPage() {
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [data, timeframe, hidden, metric]);
+  }, [data, timeframe, hidden, metric, chartType, selectedBank]);
 
   useEffect(() => {
     const cleanup = buildChart();
@@ -205,7 +302,7 @@ export default function ChartsPage() {
   return (
     <main className="flex flex-col h-screen" style={{ backgroundColor: "#0b1120", color: "#e8eaf0" }}>
       {/* Header */}
-      <header className="flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b" style={{ borderColor: "#1e293b" }}>
+      <header className="flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b flex-wrap" style={{ borderColor: "#1e293b" }}>
         <Link
           href="/"
           className="flex items-center gap-1.5 text-sm hover:opacity-80 transition-opacity"
@@ -216,12 +313,47 @@ export default function ChartsPage() {
           </svg>
           Dashboard
         </Link>
-        <h1 className="text-sm sm:text-base font-semibold">
-          Charts P2P
-        </h1>
+        <h1 className="text-sm sm:text-base font-semibold">Charts P2P</h1>
+
+        {/* Chart type toggle */}
+        <div className="flex gap-1 rounded-lg p-0.5" style={{ backgroundColor: "#1e293b" }}>
+          {(["lineas", "velas"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setChartType(t)}
+              className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+              style={{
+                backgroundColor: chartType === t ? "#334155" : "transparent",
+                color: chartType === t ? "#e8eaf0" : "#64748b",
+              }}
+            >
+              {t === "lineas" ? "Lineas" : "Velas"}
+            </button>
+          ))}
+        </div>
+
+        {/* Bank selector for candles */}
+        {chartType === "velas" && (
+          <select
+            value={selectedBank}
+            onChange={(e) => setSelectedBank(e.target.value)}
+            className="text-xs rounded-md px-2 py-1 border"
+            style={{
+              backgroundColor: "#1e293b",
+              borderColor: "#334155",
+              color: "#e8eaf0",
+            }}
+          >
+            {BANKS.map((bank) => (
+              <option key={bank.key} value={bank.key}>
+                {bank.key}
+              </option>
+            ))}
+          </select>
+        )}
 
         {/* Metric toggle */}
-        <div className="flex gap-1 ml-4 rounded-lg p-0.5" style={{ backgroundColor: "#1e293b" }}>
+        <div className="flex gap-1 rounded-lg p-0.5" style={{ backgroundColor: "#1e293b" }}>
           {(["prom", "mejor"] as const).map((m) => (
             <button
               key={m}
@@ -279,31 +411,60 @@ export default function ChartsPage() {
         className="flex flex-wrap items-center gap-2 px-3 sm:px-4 py-2 border-t text-xs"
         style={{ borderColor: "#1e293b" }}
       >
-        {BANKS.map((bank) => (
-          <button
-            key={bank.key}
-            onClick={() => toggleBank(bank.key)}
-            className="flex items-center gap-1.5 px-2 py-1 rounded transition-opacity"
-            style={{ opacity: hidden.has(bank.key) ? 0.3 : 1 }}
-          >
-            <span
-              className="inline-block w-3 h-0.5 rounded-full"
-              style={{ backgroundColor: bank.color }}
-            />
-            {bank.key}
-          </button>
-        ))}
-        <button
-          onClick={() => toggleBank("BCV")}
-          className="flex items-center gap-1.5 px-2 py-1 rounded transition-opacity"
-          style={{ opacity: hidden.has("BCV") ? 0.3 : 1 }}
-        >
-          <span
-            className="inline-block w-3 h-0.5 rounded-full"
-            style={{ backgroundColor: "#f59e0b", borderStyle: "dashed" }}
-          />
-          USD Paralelo
-        </button>
+        {chartType === "lineas" ? (
+          <>
+            {BANKS.map((bank) => (
+              <button
+                key={bank.key}
+                onClick={() => toggleBank(bank.key)}
+                className="flex items-center gap-1.5 px-2 py-1 rounded transition-opacity"
+                style={{ opacity: hidden.has(bank.key) ? 0.3 : 1 }}
+              >
+                <span
+                  className="inline-block w-3 h-0.5 rounded-full"
+                  style={{ backgroundColor: bank.color }}
+                />
+                {bank.key}
+              </button>
+            ))}
+            <button
+              onClick={() => toggleBank("BCV")}
+              className="flex items-center gap-1.5 px-2 py-1 rounded transition-opacity"
+              style={{ opacity: hidden.has("BCV") ? 0.3 : 1 }}
+            >
+              <span
+                className="inline-block w-3 h-0.5 rounded-full"
+                style={{ backgroundColor: "#f59e0b" }}
+              />
+              USD Paralelo
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="flex items-center gap-1.5 px-2 py-1">
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#22c55e" }} />
+              Vela alcista (cierre &gt; apertura)
+            </span>
+            <span className="flex items-center gap-1.5 px-2 py-1">
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#ef4444" }} />
+              Vela bajista (cierre &lt; apertura)
+            </span>
+            <span className="flex items-center gap-1.5 px-2 py-1" style={{ color: "#64748b" }}>
+              Mecha = precio max/min del periodo
+            </span>
+            <button
+              onClick={() => toggleBank("BCV")}
+              className="flex items-center gap-1.5 px-2 py-1 rounded transition-opacity"
+              style={{ opacity: hidden.has("BCV") ? 0.3 : 1 }}
+            >
+              <span
+                className="inline-block w-3 h-0.5 rounded-full"
+                style={{ backgroundColor: "#f59e0b" }}
+              />
+              USD Paralelo
+            </button>
+          </>
+        )}
         <span className="ml-auto" style={{ color: "#475569" }}>
           {data.length > 0
             ? `${data.length} puntos · desde ${new Date(data[0].t * 1000).toLocaleDateString("es-VE")}`
