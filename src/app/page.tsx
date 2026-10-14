@@ -40,6 +40,7 @@ interface RankedBank extends BankStats {
   posicion: number;
   cambio: number;
   activo: boolean;
+  trend: "up" | "down" | "same";
 }
 
 const BANK_GROUPS: { display: string; methods: string[]; abbr: string; color: string }[] = [
@@ -90,17 +91,24 @@ function mergeGroup(apiBanks: BankStats[], methods: string[]): { stats: BankStat
 
 function buildRankedList(
   apiBanks: BankStats[],
-  prevRanking: Map<string, number>
+  prevRanking: Map<string, number>,
+  prevPrices: Map<string, number>
 ): RankedBank[] {
   const items: RankedBank[] = BANK_GROUPS.map((group) => {
     const merged = mergeGroup(apiBanks, group.methods);
     if (merged) {
+      const prev = prevPrices.get(group.display);
+      let trend: "up" | "down" | "same" = "same";
+      if (prev !== undefined && prev !== merged.stats.mejorPrecio) {
+        trend = merged.stats.mejorPrecio > prev ? "up" : "down";
+      }
       return {
         ...merged.stats,
         banco: group.display,
         posicion: 0,
         cambio: 0,
         activo: true,
+        trend,
       };
     }
     return {
@@ -113,6 +121,7 @@ function buildRankedList(
       posicion: 0,
       cambio: 0,
       activo: false,
+      trend: "same" as const,
     };
   });
 
@@ -165,6 +174,32 @@ function StatusDot({ ok }: { ok: boolean }) {
       className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
       style={{ backgroundColor: ok ? "#22c55e" : "#ef4444" }}
     />
+  );
+}
+
+function TrendArrow({ trend }: { trend: "up" | "down" | "same" }) {
+  if (trend === "up")
+    return (
+      <span className="inline-flex items-center" style={{ color: "#22c55e" }}>
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+          <path d="M6 2L10 7H2L6 2Z" fill="currentColor" />
+        </svg>
+      </span>
+    );
+  if (trend === "down")
+    return (
+      <span className="inline-flex items-center" style={{ color: "#ef4444" }}>
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+          <path d="M6 10L2 5H10L6 10Z" fill="currentColor" />
+        </svg>
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center" style={{ color: "#475569" }}>
+      <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+        <line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" strokeWidth="2" />
+      </svg>
+    </span>
   );
 }
 
@@ -233,6 +268,7 @@ export default function Home() {
   const [lastP2pTime, setLastP2pTime] = useState<string | null>(null);
   const [clock, setClock] = useState("");
   const prevRanking = useRef<Map<string, number>>(new Map());
+  const prevPricesRef = useRef<Map<string, number>>(new Map());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const latestBcv = useRef<BcvResponse | null>(null);
 
@@ -257,14 +293,19 @@ export default function Home() {
       const data: P2pResponse = await res.json();
       if (data.error) throw new Error(data.error);
 
-      const newRanked = buildRankedList(data.banks, prevRanking.current);
+      const newRanked = buildRankedList(data.banks, prevRanking.current, prevPricesRef.current);
       setRanked(newRanked);
       setTotalAds(data.totalAds);
       setTotalVolumeUsdt(data.totalVolumeUsdt);
 
       const nextPrev = new Map<string, number>();
-      newRanked.forEach((b) => nextPrev.set(b.banco, b.posicion));
+      const nextPrices = new Map<string, number>();
+      newRanked.forEach((b) => {
+        nextPrev.set(b.banco, b.posicion);
+        if (b.activo) nextPrices.set(b.banco, b.mejorPrecio);
+      });
       prevRanking.current = nextPrev;
+      prevPricesRef.current = nextPrices;
 
       setP2pOk(true);
       setLastP2pTime(new Date().toLocaleTimeString("es-VE"));
@@ -395,7 +436,10 @@ export default function Home() {
                       className="py-3 pr-3 text-right font-mono text-lg md:text-xl font-bold tabular-nums"
                       style={{ color: b.activo ? "#f59e0b" : "#334155" }}
                     >
-                      {formatBs(b.mejorPrecio)}
+                      <span className="inline-flex items-center justify-end gap-1">
+                        {b.activo && <TrendArrow trend={b.trend} />}
+                        {formatBs(b.mejorPrecio)}
+                      </span>
                     </td>
                     <td
                       className="py-3 pr-3 text-right font-mono text-sm"
@@ -451,9 +495,10 @@ export default function Home() {
                   <BankBadge name={b.banco} />
                   <span className="font-medium text-sm truncate">{b.banco}</span>
                   <span
-                    className="ml-auto font-mono text-lg font-bold tabular-nums shrink-0"
+                    className="ml-auto font-mono text-lg font-bold tabular-nums shrink-0 inline-flex items-center gap-1"
                     style={{ color: b.activo ? "#f59e0b" : "#334155" }}
                   >
+                    {b.activo && <TrendArrow trend={b.trend} />}
                     {formatBs(b.mejorPrecio)}
                   </span>
                 </div>
