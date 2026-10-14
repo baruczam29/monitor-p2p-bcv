@@ -95,7 +95,6 @@ export default function ChartsPage() {
   const [error, setError] = useState<string | null>(null);
   const [metric, setMetric] = useState<"prom" | "mejor">("prom");
   const [chartType, setChartType] = useState<"lineas" | "velas">("lineas");
-  const [selectedBank, setSelectedBank] = useState("Banesco");
 
   useEffect(() => {
     fetch("/api/history")
@@ -154,12 +153,16 @@ export default function ChartsPage() {
     const valueIdx = metric === "mejor" ? 0 : 1;
 
     if (chartType === "velas") {
-      const bank = BANKS.find((b) => b.key === selectedBank);
       const rawPoints: { time: number; value: number }[] = [];
       for (const entry of data) {
-        const pair = entry.b[selectedBank];
-        if (pair && pair[valueIdx]) {
-          rawPoints.push({ time: entry.t, value: pair[valueIdx]! });
+        const values: number[] = [];
+        for (const bank of BANKS) {
+          const pair = entry.b[bank.key];
+          if (pair && pair[valueIdx]) values.push(pair[valueIdx]!);
+        }
+        if (values.length > 0) {
+          const avg = values.reduce((s, v) => s + v, 0) / values.length;
+          rawPoints.push({ time: entry.t, value: avg });
         }
       }
 
@@ -172,12 +175,12 @@ export default function ChartsPage() {
           borderDownColor: "#ef4444",
           wickUpColor: "#22c55e",
           wickDownColor: "#ef4444",
-          title: selectedBank,
+          title: metric === "prom" ? "Mercado Promedio" : "Mercado Mejor Precio",
           priceFormat: { type: "price", precision: 2, minMove: 0.01 },
         });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         series.setData(ohlc as any);
-        seriesRefs.current.set(selectedBank, series);
+        seriesRefs.current.set("mercado", series);
       }
 
       if (!hidden.has("BCV")) {
@@ -200,27 +203,29 @@ export default function ChartsPage() {
         }
       }
 
-      if (bank) {
-        const avgPoints: { time: number; value: number }[] = [];
-        const avgIdx = valueIdx === 0 ? 1 : 0;
-        for (const entry of data) {
-          const pair = entry.b[selectedBank];
-          if (pair && pair[avgIdx]) {
-            avgPoints.push({ time: entry.t, value: pair[avgIdx]! });
-          }
+      const compPoints: { time: number; value: number }[] = [];
+      const compIdx = valueIdx === 0 ? 1 : 0;
+      for (const entry of data) {
+        const values: number[] = [];
+        for (const bank of BANKS) {
+          const pair = entry.b[bank.key];
+          if (pair && pair[compIdx]) values.push(pair[compIdx]!);
         }
-        if (avgPoints.length > 0) {
-          const aggregated = aggregateSeries(avgPoints, Math.max(tf.minutes, 15));
-          const series = chart.addLineSeries({
-            color: bank.color,
-            lineWidth: 1,
-            lineStyle: 2,
-            title: metric === "mejor" ? "Promedio" : "Mejor precio",
-            priceFormat: { type: "price", precision: 2, minMove: 0.01 },
-          });
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          series.setData(aggregated as any);
+        if (values.length > 0) {
+          compPoints.push({ time: entry.t, value: values.reduce((s, v) => s + v, 0) / values.length });
         }
+      }
+      if (compPoints.length > 0) {
+        const aggregated = aggregateSeries(compPoints, Math.max(tf.minutes, 15));
+        const series = chart.addLineSeries({
+          color: "#8b5cf6",
+          lineWidth: 1,
+          lineStyle: 2,
+          title: metric === "mejor" ? "Promedio general" : "Mejor precio general",
+          priceFormat: { type: "price", precision: 2, minMove: 0.01 },
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        series.setData(aggregated as any);
       }
     } else {
       for (const bank of BANKS) {
@@ -281,7 +286,7 @@ export default function ChartsPage() {
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [data, timeframe, hidden, metric, chartType, selectedBank]);
+  }, [data, timeframe, hidden, metric, chartType]);
 
   useEffect(() => {
     const cleanup = buildChart();
@@ -331,26 +336,6 @@ export default function ChartsPage() {
             </button>
           ))}
         </div>
-
-        {/* Bank selector for candles */}
-        {chartType === "velas" && (
-          <select
-            value={selectedBank}
-            onChange={(e) => setSelectedBank(e.target.value)}
-            className="text-xs rounded-md px-2 py-1 border"
-            style={{
-              backgroundColor: "#1e293b",
-              borderColor: "#334155",
-              color: "#e8eaf0",
-            }}
-          >
-            {BANKS.map((bank) => (
-              <option key={bank.key} value={bank.key}>
-                {bank.key}
-              </option>
-            ))}
-          </select>
-        )}
 
         {/* Metric toggle */}
         <div className="flex gap-1 rounded-lg p-0.5" style={{ backgroundColor: "#1e293b" }}>
@@ -443,14 +428,18 @@ export default function ChartsPage() {
           <>
             <span className="flex items-center gap-1.5 px-2 py-1">
               <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#22c55e" }} />
-              Vela alcista (cierre &gt; apertura)
+              Alcista (cierre &gt; apertura)
             </span>
             <span className="flex items-center gap-1.5 px-2 py-1">
               <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#ef4444" }} />
-              Vela bajista (cierre &lt; apertura)
+              Bajista (cierre &lt; apertura)
             </span>
             <span className="flex items-center gap-1.5 px-2 py-1" style={{ color: "#64748b" }}>
-              Mecha = precio max/min del periodo
+              Velas = mercado general (promedio de todos los bancos)
+            </span>
+            <span className="flex items-center gap-1.5 px-2 py-1">
+              <span className="inline-block w-3 h-0.5 rounded-full" style={{ backgroundColor: "#8b5cf6" }} />
+              {metric === "mejor" ? "Promedio" : "Mejor precio"}
             </span>
             <button
               onClick={() => toggleBank("BCV")}
