@@ -417,8 +417,8 @@ export default function Home() {
                 <th className="py-2 pr-3 w-10">#</th>
                 <th className="py-2 pr-3 w-10"></th>
                 <th className="py-2 pr-3">Banco</th>
-                <th className="py-2 pr-3 text-right">Mejor precio (Bs)</th>
                 <th className="py-2 pr-3 text-right">Promedio (Bs)</th>
+                <th className="py-2 pr-3 text-right">Mejor precio (Bs)</th>
                 <th className="py-2 pr-3 text-right">Spread</th>
                 <th className="py-2 pr-3 text-right">Anuncios</th>
                 <th className="py-2 text-right">Volumen (USDT)</th>
@@ -448,16 +448,16 @@ export default function Home() {
                       className="py-3 pr-3 text-right font-mono text-lg md:text-xl font-bold tabular-nums"
                       style={{ color: b.activo ? "#f59e0b" : "#334155" }}
                     >
-                      <span className="inline-flex items-center justify-end gap-1">
-                        {b.activo && <TrendArrow trend={b.trend} />}
-                        {formatBs(b.mejorPrecio)}
-                      </span>
+                      {formatBs(b.precioPromedio)}
                     </td>
                     <td
                       className="py-3 pr-3 text-right font-mono text-sm"
                       style={{ color: b.activo ? spreadColor(b.mejorPrecio, b.precioPromedio) : "#334155" }}
                     >
-                      {formatBs(b.precioPromedio)}
+                      <span className="inline-flex items-center justify-end gap-1">
+                        {b.activo && <TrendArrow trend={b.trend} />}
+                        {formatBs(b.mejorPrecio)}
+                      </span>
                     </td>
                     <td
                       className="py-3 pr-3 text-right font-mono text-sm font-semibold"
@@ -515,17 +515,17 @@ export default function Home() {
                   <BankBadge name={b.banco} />
                   <span className="font-medium text-sm truncate">{b.banco}</span>
                   <span
-                    className="ml-auto font-mono text-lg font-bold tabular-nums shrink-0 inline-flex items-center gap-1"
+                    className="ml-auto font-mono text-lg font-bold tabular-nums shrink-0"
                     style={{ color: b.activo ? "#f59e0b" : "#334155" }}
                   >
-                    {b.activo && <TrendArrow trend={b.trend} />}
-                    {formatBs(b.mejorPrecio)}
+                    {formatBs(b.precioPromedio)}
                   </span>
                 </div>
                 {b.activo && (
                   <div className="flex gap-4 ml-12 text-[11px]" style={{ color: "#64748b" }}>
-                    <span style={{ color: spreadColor(b.mejorPrecio, b.precioPromedio) }}>
-                      Prom: {formatBs(b.precioPromedio)} ({b.mejorPrecio > 0 ? `${(((b.precioPromedio - b.mejorPrecio) / b.mejorPrecio) * 100).toFixed(2)}%` : "—"})
+                    <span className="inline-flex items-center gap-0.5" style={{ color: spreadColor(b.mejorPrecio, b.precioPromedio) }}>
+                      <TrendArrow trend={b.trend} />
+                      Mejor: {formatBs(b.mejorPrecio)} ({b.mejorPrecio > 0 ? `${(((b.precioPromedio - b.mejorPrecio) / b.mejorPrecio) * 100).toFixed(2)}%` : "—"})
                     </span>
                     <span>{b.cantidadAnuncios} anuncios</span>
                     <span>{formatVol(b.volumenDisponible)} USDT</span>
