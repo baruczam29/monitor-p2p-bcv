@@ -77,7 +77,7 @@ export async function GET() {
     const banks: BankStats[] = [];
     for (const [banco, data] of bankMap.entries()) {
       const avg = data.prices.reduce((a, b) => a + b, 0) / data.prices.length;
-      const best = Math.min(...data.prices);
+      const best = Math.max(...data.prices);
       banks.push({
         banco,
         cantidadAnuncios: data.prices.length,

@@ -171,7 +171,7 @@ function BankBadge({ name }: { name: string }) {
 
 function spreadColor(mejor: number, promedio: number): string {
   if (mejor === 0 || promedio === 0) return "#334155";
-  const spread = ((promedio - mejor) / mejor) * 100;
+  const spread = ((mejor - promedio) / promedio) * 100;
   if (spread < 0.05) return "#f59e0b";
   if (spread <= 0.15) return "#22c55e";
   return "#ef4444";
@@ -478,7 +478,7 @@ export default function Home() {
                       style={{ color: b.activo ? spreadColor(b.mejorPrecio, b.precioPromedio) : "#334155" }}
                     >
                       {b.activo && b.mejorPrecio > 0
-                        ? `${(((b.precioPromedio - b.mejorPrecio) / b.mejorPrecio) * 100).toFixed(2)}%`
+                        ? `${(((b.mejorPrecio - b.precioPromedio) / b.precioPromedio) * 100).toFixed(2)}%`
                         : "—"}
                     </td>
                     <td
@@ -539,7 +539,7 @@ export default function Home() {
                   <div className="flex gap-4 ml-12 text-[11px]" style={{ color: "#64748b" }}>
                     <span className="inline-flex items-center gap-0.5" style={{ color: spreadColor(b.mejorPrecio, b.precioPromedio) }}>
                       <TrendArrow trend={b.trend} />
-                      Mejor: {formatBs(b.mejorPrecio)} ({b.mejorPrecio > 0 ? `${(((b.precioPromedio - b.mejorPrecio) / b.mejorPrecio) * 100).toFixed(2)}%` : "—"})
+                      Mejor: {formatBs(b.mejorPrecio)} ({b.mejorPrecio > 0 ? `${(((b.mejorPrecio - b.precioPromedio) / b.precioPromedio) * 100).toFixed(2)}%` : "—"})
                     </span>
                     <span>{b.cantidadAnuncios} anuncios</span>
                     <span>{formatVol(b.volumenDisponible)} USDT</span>
