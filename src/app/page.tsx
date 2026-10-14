@@ -546,7 +546,15 @@ export default function Home() {
       </div>
 
       {/* Macro banner — market data */}
-      <MacroBanner macro={macro} />
+      <MacroBanner
+        macro={macro}
+        liveAvg={
+          ranked.filter((b) => b.activo).length > 0
+            ? ranked.filter((b) => b.activo).reduce((s, b) => s + b.precioPromedio, 0) /
+              ranked.filter((b) => b.activo).length
+            : null
+        }
+      />
 
       {/* P2P Table — main content */}
       <section
@@ -753,10 +761,14 @@ function variacionSign(v: number | null): string {
   return `${sign}${v.toFixed(2)}%`;
 }
 
-function MacroBanner({ macro }: { macro: MacroData | null }) {
+function MacroBanner({ macro, liveAvg }: { macro: MacroData | null; liveAvg: number | null }) {
   if (!macro) return null;
 
-  const showVariacion = macro.label !== "pre-market";
+  const precio = liveAvg ?? macro.actual;
+  const showVariacion = macro.label !== "pre-market" && macro.cierreAnterior !== null && precio !== null;
+  const variacion = showVariacion
+    ? ((precio! - macro.cierreAnterior!) / macro.cierreAnterior!) * 100
+    : null;
 
   return (
     <div
@@ -771,18 +783,16 @@ function MacroBanner({ macro }: { macro: MacroData | null }) {
         </span>
       </span>
 
-      {/* Variacion % — in the middle between cierre and apertura */}
-      {showVariacion && (
-        <span className="flex items-center gap-1.5 sm:gap-2">
-          <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Variacion</span>
-          <span
-            className="font-mono font-bold text-base sm:text-lg tabular-nums"
-            style={{ color: variacionColor(macro.variacionVsAyer) }}
-          >
-            {variacionSign(macro.variacionVsAyer)}
-          </span>
+      {/* Variacion % — between cierre and apertura */}
+      <span className="flex items-center gap-1.5 sm:gap-2">
+        <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Variacion</span>
+        <span
+          className="font-mono font-bold text-base sm:text-lg tabular-nums"
+          style={{ color: variacionColor(variacion) }}
+        >
+          {variacionSign(variacion)}
         </span>
-      )}
+      </span>
 
       {/* Apertura de mercado */}
       {macro.apertura !== null && (
