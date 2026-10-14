@@ -419,6 +419,7 @@ export default function Home() {
                 <th className="py-2 pr-3">Banco</th>
                 <th className="py-2 pr-3 text-right">Mejor precio (Bs)</th>
                 <th className="py-2 pr-3 text-right">Promedio (Bs)</th>
+                <th className="py-2 pr-3 text-right">Spread</th>
                 <th className="py-2 pr-3 text-right">Anuncios</th>
                 <th className="py-2 text-right">Volumen (USDT)</th>
               </tr>
@@ -459,6 +460,14 @@ export default function Home() {
                       {formatBs(b.precioPromedio)}
                     </td>
                     <td
+                      className="py-3 pr-3 text-right font-mono text-sm font-semibold"
+                      style={{ color: b.activo ? spreadColor(b.mejorPrecio, b.precioPromedio) : "#334155" }}
+                    >
+                      {b.activo && b.mejorPrecio > 0
+                        ? `${(((b.precioPromedio - b.mejorPrecio) / b.mejorPrecio) * 100).toFixed(2)}%`
+                        : "—"}
+                    </td>
+                    <td
                       className="py-3 pr-3 text-right font-mono text-sm"
                       style={{ color: b.activo ? "#e8eaf0" : "#334155" }}
                     >
@@ -474,7 +483,7 @@ export default function Home() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center" style={{ color: "#64748b" }}>
+                  <td colSpan={8} className="py-12 text-center" style={{ color: "#64748b" }}>
                     Cargando datos P2P…
                   </td>
                 </tr>
@@ -515,7 +524,9 @@ export default function Home() {
                 </div>
                 {b.activo && (
                   <div className="flex gap-4 ml-12 text-[11px]" style={{ color: "#64748b" }}>
-                    <span style={{ color: spreadColor(b.mejorPrecio, b.precioPromedio) }}>Prom: {formatBs(b.precioPromedio)}</span>
+                    <span style={{ color: spreadColor(b.mejorPrecio, b.precioPromedio) }}>
+                      Prom: {formatBs(b.precioPromedio)} ({b.mejorPrecio > 0 ? `${(((b.precioPromedio - b.mejorPrecio) / b.mejorPrecio) * 100).toFixed(2)}%` : "—"})
+                    </span>
                     <span>{b.cantidadAnuncios} anuncios</span>
                     <span>{formatVol(b.volumenDisponible)} USDT</span>
                   </div>
