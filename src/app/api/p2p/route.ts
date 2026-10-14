@@ -25,7 +25,15 @@ interface BankStats {
 
 const BINANCE_URL = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search";
 
-async function fetchPage(page: number): Promise<BinanceAd[]> {
+const TRACKED_METHODS = [
+  "Banesco", "Mercantil", "Provincial", "BBVA",
+  "BNC Banco Nacional de Crédito", "Bancamiga",
+  "Banco Digital de los Trabajadores", "Banco del Tesoro",
+  "Banplus", "Banco Plaza", "Plaza", "Banco Activo",
+  "Banco de Venezuela", "Bank Transfer", "Pago Movil",
+];
+
+async function fetchPage(page: number, payTypes: string[] = []): Promise<BinanceAd[]> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), 10000);
   try {
@@ -38,7 +46,7 @@ async function fetchPage(page: number): Promise<BinanceAd[]> {
         tradeType: "SELL",
         page,
         rows: 20,
-        payTypes: [],
+        payTypes,
         publisherType: null,
       }),
       signal: controller.signal,
@@ -55,7 +63,7 @@ async function fetchPage(page: number): Promise<BinanceAd[]> {
 export async function GET() {
   try {
     const pageNums = Array.from({ length: 10 }, (_, i) => i + 1);
-    const pages = await Promise.all(pageNums.map(fetchPage));
+    const pages = await Promise.all(pageNums.map((n) => fetchPage(n)));
     const allAds = pages.flat();
 
     const bankMap = new Map<string, { prices: number[]; volume: number }>();
@@ -71,6 +79,23 @@ export async function GET() {
         entry.prices.push(price);
         entry.volume += volume;
         bankMap.set(name, entry);
+      }
+    }
+
+    const missingMethods = TRACKED_METHODS.filter((m) => !bankMap.has(m));
+    if (missingMethods.length > 0) {
+      const targeted = await Promise.all(
+        missingMethods.map((method) => fetchPage(1, [method]).then((ads) => ({ method, ads })))
+      );
+      for (const { method, ads } of targeted) {
+        for (const ad of ads) {
+          const price = parseFloat(ad.adv.price);
+          const volume = parseFloat(ad.adv.surplusAmount);
+          const entry = bankMap.get(method) ?? { prices: [], volume: 0 };
+          entry.prices.push(price);
+          entry.volume += volume;
+          bankMap.set(method, entry);
+        }
       }
     }
 
