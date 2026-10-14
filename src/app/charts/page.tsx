@@ -130,12 +130,12 @@ export default function ChartsPage() {
       height: container.clientHeight,
       layout: {
         background: { color: "#0b1120" },
-        textColor: "#94a3b8",
+        textColor: "#7a8fad",
         fontSize: 12,
       },
       grid: {
-        vertLines: { color: "#1e293b" },
-        horzLines: { color: "#1e293b" },
+        vertLines: { color: "#0e1f3d" },
+        horzLines: { color: "#0e1f3d" },
       },
       crosshair: {
         mode: 0,
@@ -143,10 +143,10 @@ export default function ChartsPage() {
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        borderColor: "#1e293b",
+        borderColor: "#0e1f3d",
       },
       rightPriceScale: {
-        borderColor: "#1e293b",
+        borderColor: "#0e1f3d",
       },
     });
 
@@ -308,13 +308,13 @@ export default function ChartsPage() {
   };
 
   return (
-    <main className="flex flex-col h-screen" style={{ backgroundColor: "#0b1120", color: "#e8eaf0" }}>
+    <main className="flex flex-col h-screen" style={{ backgroundColor: "#0b1120", color: "#e8edf5" }}>
       {/* Header */}
-      <header className="flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b flex-wrap" style={{ borderColor: "#1e293b" }}>
+      <header className="flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b flex-wrap" style={{ borderColor: "#0e1f3d" }}>
         <Link
           href="/"
           className="flex items-center gap-1.5 text-sm hover:opacity-80 transition-opacity"
-          style={{ color: "#3b82f6" }}
+          style={{ color: "#0266FD" }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -324,15 +324,15 @@ export default function ChartsPage() {
         <h1 className="text-sm sm:text-base font-semibold">Charts P2P</h1>
 
         {/* Chart type toggle */}
-        <div className="flex gap-1 rounded-lg p-0.5" style={{ backgroundColor: "#1e293b" }}>
+        <div className="flex gap-1 rounded-lg p-0.5" style={{ backgroundColor: "#0e1f3d" }}>
           {(["lineas", "velas"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setChartType(t)}
               className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
               style={{
-                backgroundColor: chartType === t ? "#334155" : "transparent",
-                color: chartType === t ? "#e8eaf0" : "#64748b",
+                backgroundColor: chartType === t ? "#1a2844" : "transparent",
+                color: chartType === t ? "#e8edf5" : "#3d5070",
               }}
             >
               {t === "lineas" ? "Lineas" : "Velas"}
@@ -341,15 +341,15 @@ export default function ChartsPage() {
         </div>
 
         {/* Metric toggle */}
-        <div className="flex gap-1 rounded-lg p-0.5" style={{ backgroundColor: "#1e293b" }}>
+        <div className="flex gap-1 rounded-lg p-0.5" style={{ backgroundColor: "#0e1f3d" }}>
           {(["prom", "mejor"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMetric(m)}
               className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
               style={{
-                backgroundColor: metric === m ? "#334155" : "transparent",
-                color: metric === m ? "#e8eaf0" : "#64748b",
+                backgroundColor: metric === m ? "#1a2844" : "transparent",
+                color: metric === m ? "#e8edf5" : "#3d5070",
               }}
             >
               {m === "prom" ? "Promedio" : "Mejor precio"}
@@ -358,15 +358,15 @@ export default function ChartsPage() {
         </div>
 
         {/* Timeframe selector */}
-        <div className="flex gap-1 ml-auto rounded-lg p-0.5" style={{ backgroundColor: "#1e293b" }}>
+        <div className="flex gap-1 ml-auto rounded-lg p-0.5" style={{ backgroundColor: "#0e1f3d" }}>
           {TIMEFRAMES.map((tf, i) => (
             <button
               key={tf.label}
               onClick={() => setTimeframe(i)}
               className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
               style={{
-                backgroundColor: timeframe === i ? "#334155" : "transparent",
-                color: timeframe === i ? "#e8eaf0" : "#64748b",
+                backgroundColor: timeframe === i ? "#1a2844" : "transparent",
+                color: timeframe === i ? "#e8edf5" : "#3d5070",
               }}
             >
               {tf.label}
@@ -378,12 +378,12 @@ export default function ChartsPage() {
       {/* Chart area */}
       <div className="flex-1 relative">
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center" style={{ color: "#64748b" }}>
+          <div className="absolute inset-0 flex items-center justify-center" style={{ color: "#3d5070" }}>
             Cargando datos historicos...
           </div>
         )}
         {error && !loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ color: "#64748b" }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ color: "#3d5070" }}>
             <p>{error}</p>
             <p className="text-xs max-w-md text-center">
               El chart necesita datos historicos del Google Sheet. Asegurate de que el doGet del Apps Script
@@ -397,7 +397,7 @@ export default function ChartsPage() {
       {/* Legend */}
       <div
         className="flex flex-wrap items-center gap-2 px-3 sm:px-4 py-2 border-t text-xs"
-        style={{ borderColor: "#1e293b" }}
+        style={{ borderColor: "#0e1f3d" }}
       >
         {chartType === "lineas" ? (
           <>
@@ -437,7 +437,7 @@ export default function ChartsPage() {
               <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#ef4444" }} />
               Bajista (cierre &lt; apertura)
             </span>
-            <span className="flex items-center gap-1.5 px-2 py-1" style={{ color: "#64748b" }}>
+            <span className="flex items-center gap-1.5 px-2 py-1" style={{ color: "#3d5070" }}>
               Velas = mercado general (promedio de todos los bancos)
             </span>
             <span className="flex items-center gap-1.5 px-2 py-1">
@@ -457,7 +457,7 @@ export default function ChartsPage() {
             </button>
           </>
         )}
-        <span className="ml-auto" style={{ color: "#475569" }}>
+        <span className="ml-auto" style={{ color: "#2a3d5a" }}>
           {data.length > 0
             ? `${data.length} puntos · desde ${new Date(data[0].t * 1000).toLocaleDateString("es-VE")}`
             : ""}

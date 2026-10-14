@@ -295,7 +295,7 @@ function BankBadge({ name }: { name: string }) {
 }
 
 function spreadColor(mejor: number, promedio: number): string {
-  if (mejor === 0 || promedio === 0) return "#334155";
+  if (mejor === 0 || promedio === 0) return "#1a2844";
   const spread = ((mejor - promedio) / promedio) * 100;
   if (spread < 0.05) return "#f59e0b";
   if (spread <= 0.15) return "#22c55e";
@@ -329,7 +329,7 @@ function TrendArrow({ trend }: { trend: "up" | "down" | "same" }) {
       </span>
     );
   return (
-    <span className="inline-flex items-center" style={{ color: "#475569" }}>
+    <span className="inline-flex items-center" style={{ color: "#2a3d5a" }}>
       <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
         <line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" strokeWidth="2" />
       </svg>
@@ -338,7 +338,7 @@ function TrendArrow({ trend }: { trend: "up" | "down" | "same" }) {
 }
 
 function ChangeIndicator({ cambio }: { cambio: number }) {
-  if (cambio === 0) return <span style={{ color: "#475569" }}>—</span>;
+  if (cambio === 0) return <span style={{ color: "#2a3d5a" }}>—</span>;
   if (cambio > 0)
     return (
       <span className="flex items-center gap-0.5 font-semibold" style={{ color: "#22c55e" }}>
@@ -506,7 +506,7 @@ export default function Home() {
           <Link
             href="/charts"
             className="flex items-center gap-1 text-xs sm:text-sm font-medium hover:opacity-80 transition-opacity"
-            style={{ color: "#3b82f6" }}
+            style={{ color: "#0266FD" }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M2 12L5.5 7L8 9.5L14 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -516,7 +516,7 @@ export default function Home() {
           </Link>
           <span
             className="text-lg sm:text-xl md:text-2xl font-mono tabular-nums"
-            style={{ color: "#3b82f6" }}
+            style={{ color: "#0266FD" }}
           >
             {clock}
           </span>
@@ -526,13 +526,13 @@ export default function Home() {
       {/* BCV rates — grid on mobile, inline on desktop */}
       <div
         className="rounded-lg border px-3 sm:px-4 py-2.5 sm:py-3 mb-3 sm:mb-5 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-x-4 sm:gap-x-8 gap-y-2"
-        style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
+        style={{ backgroundColor: "#060d1b", borderColor: "#0e1f3d" }}
       >
         <BcvPill label="USD Oficial" value={bcv?.usd.promedio ?? null} color="#22c55e" />
         <BcvPill label="USD Paralelo" value={bcv?.paralelo.promedio ?? null} color="#f59e0b" />
         <BcvPill label="EUR Oficial" value={bcv?.eur.promedio ?? null} color="#8b5cf6" />
         {bcv?.usd.promedio && bcv?.paralelo.promedio && (
-          <span className="text-xs sm:text-sm" style={{ color: "#64748b" }}>
+          <span className="text-xs sm:text-sm" style={{ color: "#3d5070" }}>
             Brecha:{" "}
             <span className="font-mono font-semibold" style={{ color: "#f87171" }}>
               {(
@@ -559,14 +559,14 @@ export default function Home() {
       {/* P2P Table — main content */}
       <section
         className="rounded-xl border p-3 sm:p-4 md:p-6 mb-3 sm:mb-4"
-        style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
+        style={{ backgroundColor: "#060d1b", borderColor: "#0e1f3d" }}
       >
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <h2 className="text-sm sm:text-base md:text-lg font-semibold">
             Ranking bancos &middot; P2P (USDT &rarr; VES)
           </h2>
           {totalAds > 0 && (
-            <span className="text-[10px] sm:text-xs" style={{ color: "#64748b" }}>
+            <span className="text-[10px] sm:text-xs" style={{ color: "#3d5070" }}>
               {totalAds} anuncios
             </span>
           )}
@@ -578,7 +578,7 @@ export default function Home() {
             <thead>
               <tr
                 className="text-left border-b text-xs uppercase tracking-wider"
-                style={{ borderColor: "#1e293b", color: "#475569" }}
+                style={{ borderColor: "#0e1f3d", color: "#2a3d5a" }}
               >
                 <th className="py-2 pr-3 w-10">#</th>
                 <th className="py-2 pr-3 w-10"></th>
@@ -596,9 +596,9 @@ export default function Home() {
                   <tr
                     key={b.banco}
                     className="border-b transition-opacity duration-300"
-                    style={{ borderColor: "#1e293b", opacity: b.activo ? 1 : 0.35 }}
+                    style={{ borderColor: "#0e1f3d", opacity: b.activo ? 1 : 0.35 }}
                   >
-                    <td className="py-3 pr-3 font-mono text-sm" style={{ color: "#475569" }}>
+                    <td className="py-3 pr-3 font-mono text-sm" style={{ color: "#2a3d5a" }}>
                       {b.posicion}
                     </td>
                     <td className="py-3 pr-3 text-sm">
@@ -612,7 +612,7 @@ export default function Home() {
                     </td>
                     <td
                       className="py-3 pr-3 text-right font-mono text-xl md:text-2xl font-bold tabular-nums"
-                      style={{ color: b.activo ? "#f59e0b" : "#334155" }}
+                      style={{ color: b.activo ? "#f59e0b" : "#1a2844" }}
                     >
                       <span className="inline-flex items-center justify-end gap-1">
                         {b.activo && <TrendArrow trend={b.trend} />}
@@ -621,13 +621,13 @@ export default function Home() {
                     </td>
                     <td
                       className="py-3 pr-3 text-right font-mono text-sm tabular-nums"
-                      style={{ color: b.activo ? spreadColor(b.mejorPrecio, b.precioPromedio) : "#334155" }}
+                      style={{ color: b.activo ? spreadColor(b.mejorPrecio, b.precioPromedio) : "#1a2844" }}
                     >
                       {formatBs(b.precioPromedio)}
                     </td>
                     <td
                       className="py-3 pr-3 text-right font-mono text-sm font-semibold"
-                      style={{ color: b.activo ? spreadColor(b.mejorPrecio, b.precioPromedio) : "#334155" }}
+                      style={{ color: b.activo ? spreadColor(b.mejorPrecio, b.precioPromedio) : "#1a2844" }}
                     >
                       {b.activo && b.mejorPrecio > 0
                         ? `${(((b.mejorPrecio - b.precioPromedio) / b.precioPromedio) * 100).toFixed(2)}%`
@@ -635,13 +635,13 @@ export default function Home() {
                     </td>
                     <td
                       className="py-3 pr-3 text-right font-mono text-sm"
-                      style={{ color: b.activo ? "#e8eaf0" : "#334155" }}
+                      style={{ color: b.activo ? "#e8edf5" : "#1a2844" }}
                     >
                       {b.activo ? b.cantidadAnuncios : "—"}
                     </td>
                     <td
                       className="py-3 text-right font-mono text-sm"
-                      style={{ color: b.activo ? "#e8eaf0" : "#334155" }}
+                      style={{ color: b.activo ? "#e8edf5" : "#1a2844" }}
                     >
                       {b.activo ? formatVol(b.volumenDisponible) : "—"}
                     </td>
@@ -649,7 +649,7 @@ export default function Home() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center" style={{ color: "#64748b" }}>
+                  <td colSpan={8} className="py-12 text-center" style={{ color: "#3d5070" }}>
                     Cargando datos P2P…
                   </td>
                 </tr>
@@ -666,13 +666,13 @@ export default function Home() {
                 key={b.banco}
                 className="rounded-lg border px-3 py-2.5 transition-opacity duration-300"
                 style={{
-                  borderColor: "#1e293b",
-                  backgroundColor: "#0f1623",
+                  borderColor: "#0e1f3d",
+                  backgroundColor: "#040a16",
                   opacity: b.activo ? 1 : 0.35,
                 }}
               >
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className="font-mono text-xs w-5 shrink-0" style={{ color: "#475569" }}>
+                  <span className="font-mono text-xs w-5 shrink-0" style={{ color: "#2a3d5a" }}>
                     {b.posicion}
                   </span>
                   <span className="text-xs w-5 shrink-0">
@@ -682,14 +682,14 @@ export default function Home() {
                   <span className="font-medium text-sm truncate">{b.banco}</span>
                   <span
                     className="ml-auto font-mono text-xl font-bold tabular-nums shrink-0 inline-flex items-center gap-1"
-                    style={{ color: b.activo ? "#f59e0b" : "#334155" }}
+                    style={{ color: b.activo ? "#f59e0b" : "#1a2844" }}
                   >
                     {b.activo && <TrendArrow trend={b.trend} />}
                     {formatBs(b.mejorPrecio)}
                   </span>
                 </div>
                 {b.activo && (
-                  <div className="flex gap-4 ml-12 text-[11px]" style={{ color: "#64748b" }}>
+                  <div className="flex gap-4 ml-12 text-[11px]" style={{ color: "#3d5070" }}>
                     <span className="inline-flex items-center gap-0.5" style={{ color: spreadColor(b.mejorPrecio, b.precioPromedio) }}>
                       Prom: {formatBs(b.precioPromedio)} ({b.mejorPrecio > 0 ? `${(((b.mejorPrecio - b.precioPromedio) / b.precioPromedio) * 100).toFixed(2)}%` : "—"})
                     </span>
@@ -700,7 +700,7 @@ export default function Home() {
               </div>
             ))
           ) : (
-            <div className="py-12 text-center text-sm" style={{ color: "#64748b" }}>
+            <div className="py-12 text-center text-sm" style={{ color: "#3d5070" }}>
               Cargando datos P2P…
             </div>
           )}
@@ -711,23 +711,23 @@ export default function Home() {
       {totalAds > 0 && (
         <div
           className="rounded-lg border px-3 sm:px-4 py-2.5 sm:py-3 mb-3 sm:mb-4 flex flex-wrap items-center gap-x-4 sm:gap-x-8 gap-y-1.5"
-          style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
+          style={{ backgroundColor: "#060d1b", borderColor: "#0e1f3d" }}
         >
-          <span className="text-[10px] sm:text-xs uppercase tracking-wider" style={{ color: "#475569" }}>
+          <span className="text-[10px] sm:text-xs uppercase tracking-wider" style={{ color: "#2a3d5a" }}>
             Mercado P2P total
           </span>
           <span className="flex items-center gap-1.5 sm:gap-2">
-            <span className="text-xs sm:text-sm" style={{ color: "#94a3b8" }}>Anuncios</span>
-            <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
+            <span className="text-xs sm:text-sm" style={{ color: "#7a8fad" }}>Anuncios</span>
+            <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#e8edf5" }}>
               {totalAds}
             </span>
           </span>
           <span className="flex items-center gap-1.5 sm:gap-2">
-            <span className="text-xs sm:text-sm" style={{ color: "#94a3b8" }}>Volumen</span>
-            <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#3b82f6" }}>
+            <span className="text-xs sm:text-sm" style={{ color: "#7a8fad" }}>Volumen</span>
+            <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#0266FD" }}>
               {totalVolumeUsdt.toLocaleString("es-VE", { maximumFractionDigits: 0 })}
             </span>
-            <span className="text-[10px] sm:text-xs" style={{ color: "#475569" }}>USDT</span>
+            <span className="text-[10px] sm:text-xs" style={{ color: "#2a3d5a" }}>USDT</span>
           </span>
         </div>
       )}
@@ -735,7 +735,7 @@ export default function Home() {
       {/* Status bar */}
       <footer
         className="rounded-lg border px-3 sm:px-4 py-2 flex flex-wrap items-center gap-3 sm:gap-4 text-[10px] sm:text-xs"
-        style={{ backgroundColor: "#131926", borderColor: "#1e293b", color: "#64748b" }}
+        style={{ backgroundColor: "#060d1b", borderColor: "#0e1f3d", color: "#3d5070" }}
       >
         <span className="flex items-center gap-1.5">
           <StatusDot ok={bcvOk} /> BCV {lastBcvTime ? `· ${lastBcvTime}` : ""}
@@ -750,7 +750,7 @@ export default function Home() {
 }
 
 function variacionColor(v: number | null): string {
-  if (v === null) return "#64748b";
+  if (v === null) return "#3d5070";
   if (Math.abs(v) < 0.05) return "#f59e0b";
   return v > 0 ? "#22c55e" : "#ef4444";
 }
@@ -773,19 +773,19 @@ function MacroBanner({ macro, liveAvg }: { macro: MacroData | null; liveAvg: num
   return (
     <div
       className="rounded-lg border px-3 sm:px-4 py-2.5 sm:py-3 mb-3 sm:mb-5 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-x-4 sm:gap-x-8 gap-y-2"
-      style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
+      style={{ backgroundColor: "#060d1b", borderColor: "#0e1f3d" }}
     >
       {/* Cierre anterior */}
       <span className="flex items-center gap-1.5 sm:gap-2">
-        <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Cierre anterior</span>
-        <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
+        <span className="text-[10px] sm:text-sm" style={{ color: "#7a8fad" }}>Cierre anterior</span>
+        <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#e8edf5" }}>
           {macro.cierreAnterior !== null ? formatBs(macro.cierreAnterior) : "--"}
         </span>
       </span>
 
       {/* Variacion % — between cierre and apertura */}
       <span className="flex items-center gap-1.5 sm:gap-2">
-        <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Variacion</span>
+        <span className="text-[10px] sm:text-sm" style={{ color: "#7a8fad" }}>Variacion</span>
         <span
           className="font-mono font-bold text-base sm:text-lg tabular-nums"
           style={{ color: variacionColor(variacion) }}
@@ -797,8 +797,8 @@ function MacroBanner({ macro, liveAvg }: { macro: MacroData | null; liveAvg: num
       {/* Apertura de mercado */}
       {macro.apertura !== null && (
         <span className="flex items-center gap-1.5 sm:gap-2">
-          <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Apertura</span>
-          <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
+          <span className="text-[10px] sm:text-sm" style={{ color: "#7a8fad" }}>Apertura</span>
+          <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#e8edf5" }}>
             {formatBs(macro.apertura)}
           </span>
         </span>
@@ -807,8 +807,8 @@ function MacroBanner({ macro, liveAvg }: { macro: MacroData | null; liveAvg: num
       {/* Rango */}
       {macro.rangoHigh !== null && macro.rangoLow !== null && (
         <span className="flex items-center gap-1.5 sm:gap-2 col-span-2 sm:col-span-1">
-          <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Rango</span>
-          <span className="font-mono text-sm sm:text-base tabular-nums" style={{ color: "#64748b" }}>
+          <span className="text-[10px] sm:text-sm" style={{ color: "#7a8fad" }}>Rango</span>
+          <span className="font-mono text-sm sm:text-base tabular-nums" style={{ color: "#3d5070" }}>
             {formatBs(macro.rangoLow)} – {formatBs(macro.rangoHigh)}
           </span>
         </span>
@@ -828,7 +828,7 @@ function BcvPill({
 }) {
   return (
     <span className="flex items-center gap-1.5 sm:gap-2">
-      <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>
+      <span className="text-[10px] sm:text-sm" style={{ color: "#7a8fad" }}>
         {label}
       </span>
       <span
@@ -837,7 +837,7 @@ function BcvPill({
       >
         {formatBs(value)}
       </span>
-      <span className="text-[10px] sm:text-xs" style={{ color: "#475569" }}>
+      <span className="text-[10px] sm:text-xs" style={{ color: "#2a3d5a" }}>
         Bs
       </span>
     </span>
