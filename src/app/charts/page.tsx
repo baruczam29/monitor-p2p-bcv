@@ -34,6 +34,8 @@ const TIMEFRAMES = [
 
 type LWChart = ReturnType<typeof import("lightweight-charts").createChart>;
 
+const VET_OFFSET = -4 * 3600;
+
 function aggregateSeries(
   raw: { time: number; value: number }[],
   bucketMinutes: number
@@ -101,7 +103,8 @@ export default function ChartsPage() {
       .then((r) => r.json())
       .then((json) => {
         if (json.data && json.data.length > 0) {
-          setData(json.data);
+          const adjusted = json.data.map((d: HistoryEntry) => ({ ...d, t: d.t + VET_OFFSET }));
+          setData(adjusted);
         } else {
           setError(json.error || "No hay datos historicos todavia");
         }
