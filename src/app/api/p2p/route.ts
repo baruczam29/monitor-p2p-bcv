@@ -77,11 +77,10 @@ export async function GET() {
     const banks: BankStats[] = [];
     for (const [banco, data] of bankMap.entries()) {
       const sorted = [...data.prices].sort((a, b) => a - b);
-      const q1 = sorted[Math.floor(sorted.length * 0.25)];
-      const q3 = sorted[Math.floor(sorted.length * 0.75)];
-      const iqr = q3 - q1;
-      const lo = q1 - 1.5 * iqr;
-      const hi = q3 + 1.5 * iqr;
+      const mean = sorted.reduce((a, b) => a + b, 0) / sorted.length;
+      const stdDev = Math.sqrt(sorted.reduce((s, p) => s + (p - mean) ** 2, 0) / sorted.length);
+      const lo = mean - 2 * stdDev;
+      const hi = mean + 2 * stdDev;
       const clean = sorted.filter((p) => p >= lo && p <= hi);
       const prices = clean.length > 0 ? clean : sorted;
 
