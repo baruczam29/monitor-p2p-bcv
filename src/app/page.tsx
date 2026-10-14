@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import Link from "next/link";
 
 interface CurrencyData {
   compra: number | null;
@@ -360,11 +361,24 @@ export default function Home() {
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">
           Monitor P2P &amp; BCV
         </h1>
-        <div
-          className="text-lg sm:text-xl md:text-2xl font-mono tabular-nums"
-          style={{ color: "#3b82f6" }}
-        >
-          {clock}
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Link
+            href="/charts"
+            className="flex items-center gap-1 text-xs sm:text-sm font-medium hover:opacity-80 transition-opacity"
+            style={{ color: "#3b82f6" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M2 12L5.5 7L8 9.5L14 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M11 3H14V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Charts
+          </Link>
+          <span
+            className="text-lg sm:text-xl md:text-2xl font-mono tabular-nums"
+            style={{ color: "#3b82f6" }}
+          >
+            {clock}
+          </span>
         </div>
       </header>
 
