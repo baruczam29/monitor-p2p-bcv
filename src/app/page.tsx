@@ -763,25 +763,15 @@ function MacroBanner({ macro }: { macro: MacroData | null }) {
       className="rounded-lg border px-3 sm:px-4 py-2.5 sm:py-3 mb-3 sm:mb-5 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-x-4 sm:gap-x-8 gap-y-2"
       style={{ backgroundColor: "#131926", borderColor: "#1e293b" }}
     >
-      {/* Ayer */}
+      {/* Cierre anterior */}
       <span className="flex items-center gap-1.5 sm:gap-2">
-        <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Ayer</span>
+        <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Cierre anterior</span>
         <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
           {macro.cierreAnterior !== null ? formatBs(macro.cierreAnterior) : "--"}
         </span>
       </span>
 
-      {/* Hoy */}
-      {showVariacion && macro.actual !== null && (
-        <span className="flex items-center gap-1.5 sm:gap-2">
-          <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Hoy</span>
-          <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
-            {formatBs(macro.actual)}
-          </span>
-        </span>
-      )}
-
-      {/* Variacion % */}
+      {/* Variacion % — in the middle between cierre and apertura */}
       {showVariacion && (
         <span className="flex items-center gap-1.5 sm:gap-2">
           <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Variacion</span>
@@ -790,6 +780,16 @@ function MacroBanner({ macro }: { macro: MacroData | null }) {
             style={{ color: variacionColor(macro.variacionVsAyer) }}
           >
             {variacionSign(macro.variacionVsAyer)}
+          </span>
+        </span>
+      )}
+
+      {/* Apertura de mercado */}
+      {macro.apertura !== null && (
+        <span className="flex items-center gap-1.5 sm:gap-2">
+          <span className="text-[10px] sm:text-sm" style={{ color: "#94a3b8" }}>Apertura</span>
+          <span className="font-mono font-bold text-base sm:text-lg tabular-nums" style={{ color: "#e8eaf0" }}>
+            {formatBs(macro.apertura)}
           </span>
         </span>
       )}
