@@ -76,8 +76,17 @@ export async function GET() {
 
     const banks: BankStats[] = [];
     for (const [banco, data] of bankMap.entries()) {
-      const avg = data.prices.reduce((a, b) => a + b, 0) / data.prices.length;
-      const best = Math.max(...data.prices);
+      const sorted = [...data.prices].sort((a, b) => a - b);
+      const q1 = sorted[Math.floor(sorted.length * 0.25)];
+      const q3 = sorted[Math.floor(sorted.length * 0.75)];
+      const iqr = q3 - q1;
+      const lo = q1 - 1.5 * iqr;
+      const hi = q3 + 1.5 * iqr;
+      const clean = sorted.filter((p) => p >= lo && p <= hi);
+      const prices = clean.length > 0 ? clean : sorted;
+
+      const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+      const best = Math.max(...prices);
       banks.push({
         banco,
         cantidadAnuncios: data.prices.length,
