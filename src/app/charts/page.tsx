@@ -25,11 +25,11 @@ const BANKS = [
 ];
 
 const TIMEFRAMES = [
-  { label: "1m", minutes: 1 },
-  { label: "15m", minutes: 15 },
-  { label: "1h", minutes: 60 },
-  { label: "4h", minutes: 240 },
-  { label: "1D", minutes: 1440 },
+  { label: "1m", minutes: 1, maxHours: 24 },
+  { label: "15m", minutes: 15, maxHours: 72 },
+  { label: "1h", minutes: 60, maxHours: 168 },
+  { label: "4h", minutes: 240, maxHours: 0 },
+  { label: "1D", minutes: 1440, maxHours: 0 },
 ];
 
 type LWChart = ReturnType<typeof import("lightweight-charts").createChart>;
@@ -40,7 +40,7 @@ function aggregateSeries(
   raw: { time: number; value: number }[],
   bucketMinutes: number
 ): { time: number; value: number }[] {
-  if (bucketMinutes <= 1) return raw;
+  if (bucketMinutes < 1) return raw;
 
   const bucketSec = bucketMinutes * 60;
   const buckets = new Map<number, number[]>();
@@ -155,9 +155,16 @@ export default function ChartsPage() {
     const tf = TIMEFRAMES[timeframe];
     const valueIdx = metric === "mejor" ? 0 : 1;
 
+    let chartData = data;
+    if (tf.maxHours > 0) {
+      const latest = data[data.length - 1].t;
+      const cutoff = latest - tf.maxHours * 3600;
+      chartData = data.filter((d) => d.t >= cutoff);
+    }
+
     if (chartType === "velas") {
       const rawPoints: { time: number; value: number }[] = [];
-      for (const entry of data) {
+      for (const entry of chartData) {
         const values: number[] = [];
         for (const bank of BANKS) {
           const pair = entry.b[bank.key];
@@ -188,7 +195,7 @@ export default function ChartsPage() {
 
       if (!hidden.has("BCV")) {
         const bcvPoints: { time: number; value: number }[] = [];
-        for (const entry of data) {
+        for (const entry of chartData) {
           if (entry.par) bcvPoints.push({ time: entry.t, value: entry.par });
         }
         if (bcvPoints.length > 0) {
@@ -208,7 +215,7 @@ export default function ChartsPage() {
 
       const compPoints: { time: number; value: number }[] = [];
       const compIdx = valueIdx === 0 ? 1 : 0;
-      for (const entry of data) {
+      for (const entry of chartData) {
         const values: number[] = [];
         for (const bank of BANKS) {
           const pair = entry.b[bank.key];
@@ -235,7 +242,7 @@ export default function ChartsPage() {
         if (hidden.has(bank.key)) continue;
 
         const rawPoints: { time: number; value: number }[] = [];
-        for (const entry of data) {
+        for (const entry of chartData) {
           const pair = entry.b[bank.key];
           if (pair && pair[valueIdx]) {
             rawPoints.push({ time: entry.t, value: pair[valueIdx]! });
@@ -258,7 +265,7 @@ export default function ChartsPage() {
 
       if (!hidden.has("BCV")) {
         const bcvPoints: { time: number; value: number }[] = [];
-        for (const entry of data) {
+        for (const entry of chartData) {
           if (entry.par) bcvPoints.push({ time: entry.t, value: entry.par });
         }
         if (bcvPoints.length > 0) {
