@@ -64,7 +64,7 @@ function aggregateOHLC(
   raw: { time: number; value: number }[],
   bucketMinutes: number
 ): { time: number; open: number; high: number; low: number; close: number }[] {
-  const bucketSec = Math.max(bucketMinutes, 15) * 60;
+  const bucketSec = Math.max(bucketMinutes, 1) * 60;
   const buckets = new Map<number, number[]>();
 
   for (const { time, value } of raw) {
@@ -199,7 +199,7 @@ export default function ChartsPage() {
           if (entry.par) bcvPoints.push({ time: entry.t, value: entry.par });
         }
         if (bcvPoints.length > 0) {
-          const aggregated = aggregateSeries(bcvPoints, Math.max(tf.minutes, 15));
+          const aggregated = aggregateSeries(bcvPoints, tf.minutes);
           const series = chart.addLineSeries({
             color: "#f59e0b",
             lineWidth: 1,
@@ -226,7 +226,7 @@ export default function ChartsPage() {
         }
       }
       if (compPoints.length > 0) {
-        const aggregated = aggregateSeries(compPoints, Math.max(tf.minutes, 15));
+        const aggregated = aggregateSeries(compPoints, tf.minutes);
         const series = chart.addLineSeries({
           color: "#8b5cf6",
           lineWidth: 1,
