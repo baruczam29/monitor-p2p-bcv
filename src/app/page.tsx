@@ -693,52 +693,63 @@ export default function Home() {
           </table>
         </div>
 
-        {/* Mobile card list */}
-        <div className="sm:hidden flex flex-col gap-2">
-          {ranked.length > 0 ? (
-            ranked.map((b) => (
-              <div
-                key={b.banco}
-                className="rounded-lg border px-3 py-2.5 transition-opacity duration-300"
-                style={{
-                  borderColor: "var(--card-border)",
-                  backgroundColor: "var(--dark-card)",
-                  opacity: b.activo ? 1 : 0.35,
-                }}
+        {/* Compact table for narrow/projection view */}
+        <div className="sm:hidden">
+          <table className="w-full">
+            <thead>
+              <tr
+                className="text-left border-b text-xs uppercase tracking-wider"
+                style={{ borderColor: "var(--card-border)", color: "var(--dim)" }}
               >
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="font-mono text-xs w-5 shrink-0" style={{ color: "var(--dim)" }}>
-                    {b.posicion}
-                  </span>
-                  <span className="text-xs w-5 shrink-0">
-                    <ChangeIndicator cambio={b.cambio} />
-                  </span>
-                  <BankBadge name={b.banco} />
-                  <span className="font-medium text-sm truncate">{b.banco}</span>
-                  <span
-                    className="ml-auto font-mono text-xl font-bold tabular-nums shrink-0 inline-flex items-center gap-1"
-                    style={{ color: b.activo ? "var(--accent-amber)" : "var(--inactive)" }}
+                <th className="py-2 pr-1 w-7">#</th>
+                <th className="py-2">Banco</th>
+                <th className="py-2 pr-1 text-right">Prom</th>
+                <th className="py-2 text-right">Mejor precio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ranked.length > 0 ? (
+                ranked.map((b) => (
+                  <tr
+                    key={b.banco}
+                    className="border-b transition-opacity"
+                    style={{ borderColor: "var(--card-border)", opacity: b.activo ? 1 : 0.3 }}
                   >
-                    {b.activo && <TrendArrow trend={b.trend} />}
-                    {formatBs(b.mejorPrecio)}
-                  </span>
-                </div>
-                {b.activo && (
-                  <div className="flex gap-4 ml-12 text-[11px]" style={{ color: "var(--muted)" }}>
-                    <span className="inline-flex items-center gap-0.5" style={{ color: spreadColor(b.mejorPrecio, b.precioPromedio) }}>
-                      Prom: {formatBs(b.precioPromedio)} ({b.mejorPrecio > 0 ? `${(((b.mejorPrecio - b.precioPromedio) / b.precioPromedio) * 100).toFixed(2)}%` : "—"})
-                    </span>
-                    <span>{b.cantidadAnuncios} anuncios</span>
-                    <span>{formatVol(b.volumenDisponible)} USDT</span>
-                  </div>
-                )}
-              </div>
-            ))
-          ) : (
-            <div className="py-12 text-center text-sm" style={{ color: "var(--muted)" }}>
-              Cargando datos P2P…
-            </div>
-          )}
+                    <td className="py-2 pr-1 font-mono text-base font-bold" style={{ color: "var(--dim)" }}>
+                      {b.posicion}
+                    </td>
+                    <td className="py-2">
+                      <span className="flex items-center gap-1.5">
+                        <BankBadge name={b.banco} />
+                        <span className="font-semibold text-sm">{b.banco}</span>
+                      </span>
+                    </td>
+                    <td
+                      className="py-2 pr-1 text-right font-mono text-sm tabular-nums"
+                      style={{ color: b.activo ? "var(--secondary)" : "var(--inactive)" }}
+                    >
+                      {formatBs(b.precioPromedio)}
+                    </td>
+                    <td
+                      className="py-2 text-right font-mono text-xl font-bold tabular-nums"
+                      style={{ color: b.activo ? "var(--accent-amber)" : "var(--inactive)" }}
+                    >
+                      <span className="inline-flex items-center justify-end gap-1">
+                        {b.activo && <TrendArrow trend={b.trend} />}
+                        {formatBs(b.mejorPrecio)}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="py-12 text-center" style={{ color: "var(--muted)" }}>
+                    Cargando datos P2P…
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
 
