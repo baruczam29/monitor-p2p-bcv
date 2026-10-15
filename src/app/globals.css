@@ -5,11 +5,35 @@
   --foreground: #e8edf5;
   --card-bg: #060d1b;
   --card-border: #0e1f3d;
+  --dark-card: #040a16;
   --accent-green: #22c55e;
   --accent-red: #ef4444;
   --accent-blue: #0266FD;
   --accent-amber: #f59e0b;
+  --light-red: #f87171;
+  --purple: #8b5cf6;
   --muted: #3d5070;
+  --secondary: #7a8fad;
+  --dim: #2a3d5a;
+  --inactive: #1a2844;
+}
+
+[data-theme="light"] {
+  --background: #f4f6f9;
+  --foreground: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: #d0d7e2;
+  --dark-card: #eef1f6;
+  --accent-green: #15803d;
+  --accent-red: #dc2626;
+  --accent-blue: #0255d4;
+  --accent-amber: #b45309;
+  --light-red: #dc2626;
+  --purple: #7c3aed;
+  --muted: #64748b;
+  --secondary: #475569;
+  --dim: #94a3b8;
+  --inactive: #cbd5e1;
 }
 
 @theme inline {
@@ -23,4 +47,5 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s, color 0.2s;
 }
