@@ -90,6 +90,7 @@ export default function ChartsPage() {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<LWChart | null>(null);
   const seriesRefs = useRef<Map<string, unknown>>(new Map());
+  const dataRef = useRef<HistoryEntry[]>([]);
   const [data, setData] = useState<HistoryEntry[]>([]);
   const [timeframe, setTimeframe] = useState(0);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
@@ -104,6 +105,7 @@ export default function ChartsPage() {
       .then((json) => {
         if (json.data && json.data.length > 0) {
           const adjusted = json.data.map((d: HistoryEntry) => ({ ...d, t: d.t + VET_OFFSET }));
+          dataRef.current = adjusted;
           setData(adjusted);
         } else {
           setError(json.error || "No hay datos historicos todavia");
@@ -155,7 +157,8 @@ export default function ChartsPage() {
     const tf = TIMEFRAMES[timeframe];
     const valueIdx = metric === "mejor" ? 0 : 1;
 
-    let chartData = data;
+    const sourceData = dataRef.current.length > 0 ? dataRef.current : data;
+    let chartData = sourceData;
     if (tf.maxHours > 0) {
       const latest = data[data.length - 1].t;
       const cutoff = latest - tf.maxHours * 3600;
@@ -304,6 +307,103 @@ export default function ChartsPage() {
       cleanup?.then((fn) => fn?.());
     };
   }, [buildChart]);
+
+  useEffect(() => {
+    if (data.length === 0) return;
+
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/history");
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!json.data || json.data.length === 0) return;
+
+        const adjusted = json.data.map((d: HistoryEntry) => ({ ...d, t: d.t + VET_OFFSET }));
+        dataRef.current = adjusted;
+
+        const tf = TIMEFRAMES[timeframe];
+        const valueIdx = metric === "mejor" ? 0 : 1;
+
+        let freshData = adjusted;
+        if (tf.maxHours > 0) {
+          const latest = adjusted[adjusted.length - 1].t;
+          const cutoff = latest - tf.maxHours * 3600;
+          freshData = adjusted.filter((d: HistoryEntry) => d.t >= cutoff);
+        }
+
+        if (chartType === "velas") {
+          const rawPoints: { time: number; value: number }[] = [];
+          for (const entry of freshData) {
+            const values: number[] = [];
+            for (const bank of BANKS) {
+              const pair = entry.b[bank.key];
+              if (pair && pair[valueIdx]) values.push(pair[valueIdx]!);
+            }
+            if (values.length > 0) {
+              rawPoints.push({ time: entry.t, value: values.reduce((s, v) => s + v, 0) / values.length });
+            }
+          }
+
+          const ohlc = aggregateOHLC(rawPoints, tf.minutes);
+          const candleSeries = seriesRefs.current.get("mercado");
+          if (candleSeries && ohlc.length > 0) {
+            const lastTwo = ohlc.slice(-2);
+            for (const candle of lastTwo) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (candleSeries as any).update(candle);
+            }
+          }
+
+          const bcvSeries = seriesRefs.current.get("BCV");
+          if (bcvSeries) {
+            const bcvPoints: { time: number; value: number }[] = [];
+            for (const entry of freshData) {
+              if (entry.par) bcvPoints.push({ time: entry.t, value: entry.par });
+            }
+            const aggregated = aggregateSeries(bcvPoints, tf.minutes);
+            if (aggregated.length > 0) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (bcvSeries as any).update(aggregated[aggregated.length - 1]);
+            }
+          }
+        } else {
+          for (const bank of BANKS) {
+            const series = seriesRefs.current.get(bank.key);
+            if (!series) continue;
+
+            const rawPoints: { time: number; value: number }[] = [];
+            for (const entry of freshData) {
+              const pair = entry.b[bank.key];
+              if (pair && pair[valueIdx]) rawPoints.push({ time: entry.t, value: pair[valueIdx]! });
+            }
+            const aggregated = aggregateSeries(rawPoints, tf.minutes);
+            if (aggregated.length > 0) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (series as any).update(aggregated[aggregated.length - 1]);
+            }
+          }
+
+          const bcvSeries = seriesRefs.current.get("BCV");
+          if (bcvSeries) {
+            const bcvPoints: { time: number; value: number }[] = [];
+            for (const entry of freshData) {
+              if (entry.par) bcvPoints.push({ time: entry.t, value: entry.par });
+            }
+            const aggregated = aggregateSeries(bcvPoints, tf.minutes);
+            if (aggregated.length > 0) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (bcvSeries as any).update(aggregated[aggregated.length - 1]);
+            }
+          }
+        }
+      } catch {
+        // live update is best-effort
+      }
+    };
+
+    const id = setInterval(poll, 60_000);
+    return () => clearInterval(id);
+  }, [data.length, chartType, timeframe, metric]);
 
   const toggleBank = (key: string) => {
     setHidden((prev) => {
