@@ -25,11 +25,11 @@ const BANKS = [
 ];
 
 const TIMEFRAMES = [
-  { label: "1m", minutes: 1, maxHours: 24 },
-  { label: "15m", minutes: 15, maxHours: 72 },
-  { label: "1h", minutes: 60, maxHours: 168 },
-  { label: "4h", minutes: 240, maxHours: 0 },
-  { label: "1D", minutes: 1440, maxHours: 0 },
+  { label: "1m", minutes: 1 },
+  { label: "15m", minutes: 15 },
+  { label: "1h", minutes: 60 },
+  { label: "4h", minutes: 240 },
+  { label: "1D", minutes: 1440 },
 ];
 
 type LWChart = ReturnType<typeof import("lightweight-charts").createChart>;
@@ -157,13 +157,7 @@ export default function ChartsPage() {
     const tf = TIMEFRAMES[timeframe];
     const valueIdx = metric === "mejor" ? 0 : 1;
 
-    const sourceData = dataRef.current.length > 0 ? dataRef.current : data;
-    let chartData = sourceData;
-    if (tf.maxHours > 0) {
-      const latest = data[data.length - 1].t;
-      const cutoff = latest - tf.maxHours * 3600;
-      chartData = data.filter((d) => d.t >= cutoff);
-    }
+    const chartData = dataRef.current.length > 0 ? dataRef.current : data;
 
     if (chartType === "velas") {
       const rawPoints: { time: number; value: number }[] = [];
@@ -324,12 +318,7 @@ export default function ChartsPage() {
         const tf = TIMEFRAMES[timeframe];
         const valueIdx = metric === "mejor" ? 0 : 1;
 
-        let freshData = adjusted;
-        if (tf.maxHours > 0) {
-          const latest = adjusted[adjusted.length - 1].t;
-          const cutoff = latest - tf.maxHours * 3600;
-          freshData = adjusted.filter((d: HistoryEntry) => d.t >= cutoff);
-        }
+        const freshData = adjusted;
 
         if (chartType === "velas") {
           const rawPoints: { time: number; value: number }[] = [];
