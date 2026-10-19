@@ -95,7 +95,7 @@ function doGet(e) {
     }
 
     var maxRows = parseInt(e.parameter.rows) || 2000;
-    if (maxRows > 5000) maxRows = 5000;
+    if (maxRows > 100000) maxRows = 100000;
 
     var lastRow = sheet.getLastRow();
     if (lastRow <= 1) {
