@@ -9,7 +9,7 @@ export async function GET() {
   }
 
   try {
-    const url = `${webhookUrl}?action=history&rows=3000`;
+    const url = `${webhookUrl}?action=history&rows=50000`;
     const res = await fetch(url, { cache: "no-store" });
 
     if (!res.ok) {
