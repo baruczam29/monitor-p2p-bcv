@@ -21,6 +21,7 @@ const BANKS = [
   { key: "Banplus", color: "#E30613" },
   { key: "Plaza", color: "#006341" },
   { key: "Activo", color: "#CC0000" },
+  { key: "BDV", color: "#005BAA" },
 ];
 
 const TIMEFRAMES = [

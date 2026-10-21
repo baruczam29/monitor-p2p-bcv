@@ -179,6 +179,7 @@ const BANK_GROUPS: { display: string; methods: string[]; abbr: string; color: st
   { display: "Banplus", methods: ["Banplus"], abbr: "B+", color: "#E30613" },
   { display: "Banco Plaza", methods: ["Banco Plaza", "Plaza"], abbr: "PL", color: "#006341" },
   { display: "Banco Activo", methods: ["Banco Activo"], abbr: "AC", color: "#CC0000" },
+  { display: "BDV", methods: ["Banco de Venezuela", "Bank Transfer"], abbr: "BV", color: "#005BAA" },
 ];
 
 const BANK_BRAND_MAP = new Map(BANK_GROUPS.map((g) => [g.display, { abbr: g.abbr, color: g.color }]));
