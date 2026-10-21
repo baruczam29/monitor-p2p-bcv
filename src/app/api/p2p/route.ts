@@ -30,7 +30,6 @@ const TRACKED_METHODS = [
   "BNC Banco Nacional de Crédito", "Bancamiga",
   "Banco Digital de los Trabajadores", "Banco del Tesoro",
   "Banplus", "Banco Plaza", "Plaza", "Banco Activo",
-  "Banco de Venezuela", "Bank Transfer", "Pago Movil",
 ];
 
 async function fetchPage(page: number, payTypes: string[] = []): Promise<BinanceAd[]> {
