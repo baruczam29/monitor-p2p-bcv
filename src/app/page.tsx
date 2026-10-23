@@ -462,10 +462,8 @@ export default function Home() {
       const newRanked = buildRankedList(data.banks, prevRanking.current, prevPricesRef.current);
       setRanked(newRanked);
 
-      const sumAds = newRanked.reduce((s, b) => s + b.cantidadAnuncios, 0);
-      const sumVol = newRanked.reduce((s, b) => s + b.volumenDisponible, 0);
-      setTotalAds(sumAds);
-      setTotalVolumeUsdt(Math.round(sumVol * 100) / 100);
+      setTotalAds(data.totalAds || 0);
+      setTotalVolumeUsdt(data.totalVolumeUsdt || 0);
 
       const nextPrev = new Map<string, number>();
       const nextPrices = new Map<string, number>();
