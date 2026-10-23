@@ -477,7 +477,7 @@ export default function Home() {
       setP2pOk(true);
       setLastP2pTime(new Date().toLocaleTimeString("es-VE"));
 
-      logToSheet(latestBcv.current, newRanked, sumAds, sumVol);
+      logToSheet(latestBcv.current, newRanked, data.totalAds || 0, data.totalVolumeUsdt || 0);
     } catch {
       setP2pOk(false);
     }
