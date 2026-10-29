@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 export async function GET() {
   const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK;
@@ -9,8 +10,11 @@ export async function GET() {
   }
 
   try {
-    const url = `${webhookUrl}?action=history&rows=50000`;
-    const res = await fetch(url, { cache: "no-store" });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
+    const url = `${webhookUrl}?action=history&rows=10000`;
+    const res = await fetch(url, { cache: "no-store", signal: controller.signal });
+    clearTimeout(timeout);
 
     if (!res.ok) {
       return NextResponse.json({ data: [], error: `Upstream ${res.status}` }, { status: 502 });
