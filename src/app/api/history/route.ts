@@ -12,7 +12,7 @@ export async function GET() {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 25000);
-    const url = `${webhookUrl}?action=history&rows=10000`;
+    const url = `${webhookUrl}?action=history&rows=5000`;
     const res = await fetch(url, { cache: "no-store", signal: controller.signal });
     clearTimeout(timeout);
 
