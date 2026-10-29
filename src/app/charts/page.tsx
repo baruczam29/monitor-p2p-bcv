@@ -56,7 +56,7 @@ function aggregateSeries(
     .sort((a, b) => a[0] - b[0])
     .map(([time, values]) => ({
       time,
-      value: values.reduce((s, v) => s + v, 0) / values.length,
+      value: Math.max(...values),
     }));
 }
 
@@ -168,8 +168,7 @@ export default function ChartsPage() {
           if (pair && pair[valueIdx]) values.push(pair[valueIdx]!);
         }
         if (values.length > 0) {
-          const avg = values.reduce((s, v) => s + v, 0) / values.length;
-          rawPoints.push({ time: entry.t, value: avg });
+          rawPoints.push({ time: entry.t, value: Math.max(...values) });
         }
       }
 
@@ -182,7 +181,7 @@ export default function ChartsPage() {
           borderDownColor: "#ef4444",
           wickUpColor: "#22c55e",
           wickDownColor: "#ef4444",
-          title: metric === "prom" ? "Mercado Promedio" : "Mercado Mejor Precio",
+          title: "Mejor precio general",
           priceFormat: { type: "price", precision: 2, minMove: 0.01 },
         });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -219,7 +218,7 @@ export default function ChartsPage() {
           if (pair && pair[compIdx]) values.push(pair[compIdx]!);
         }
         if (values.length > 0) {
-          compPoints.push({ time: entry.t, value: values.reduce((s, v) => s + v, 0) / values.length });
+          compPoints.push({ time: entry.t, value: Math.max(...values) });
         }
       }
       if (compPoints.length > 0) {
@@ -228,7 +227,7 @@ export default function ChartsPage() {
           color: "#8b5cf6",
           lineWidth: 1,
           lineStyle: 2,
-          title: metric === "mejor" ? "Promedio general" : "Mejor precio general",
+          title: "Mejor precio (comparacion)",
           priceFormat: { type: "price", precision: 2, minMove: 0.01 },
         });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
