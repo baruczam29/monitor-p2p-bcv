@@ -462,8 +462,10 @@ export default function Home() {
       const newRanked = buildRankedList(data.banks, prevRanking.current, prevPricesRef.current);
       setRanked(newRanked);
 
-      setTotalAds(data.totalAds || 0);
-      setTotalVolumeUsdt(data.totalVolumeUsdt || 0);
+      const sumAds = newRanked.reduce((s, b) => s + b.cantidadAnuncios, 0);
+      const sumVol = newRanked.reduce((s, b) => s + b.volumenDisponible, 0);
+      setTotalAds(sumAds);
+      setTotalVolumeUsdt(Math.round(sumVol * 100) / 100);
 
       const nextPrev = new Map<string, number>();
       const nextPrices = new Map<string, number>();
@@ -477,7 +479,7 @@ export default function Home() {
       setP2pOk(true);
       setLastP2pTime(new Date().toLocaleTimeString("es-VE"));
 
-      logToSheet(latestBcv.current, newRanked, data.totalAds || 0, data.totalVolumeUsdt || 0);
+      logToSheet(latestBcv.current, newRanked, sumAds, Math.round(sumVol * 100) / 100);
     } catch {
       setP2pOk(false);
     }
