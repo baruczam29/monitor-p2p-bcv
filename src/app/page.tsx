@@ -186,7 +186,7 @@ const BANK_BRAND_MAP = new Map(BANK_GROUPS.map((g) => [g.display, { abbr: g.abbr
 
 function findApiBank(apiBanks: BankStats[], method: string): BankStats | undefined {
   const m = method.toLowerCase();
-  return apiBanks.find((b) => b.banco.toLowerCase() === m);
+  return apiBanks.find((b) => b.banco && b.banco.toLowerCase() === m);
 }
 
 function mergeGroup(apiBanks: BankStats[], methods: string[]): { stats: BankStats; activo: boolean } | null {
