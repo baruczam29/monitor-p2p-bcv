@@ -96,16 +96,25 @@ function doGet(e) {
 
     var maxRows = parseInt(e.parameter.rows) || 2000;
     if (maxRows > 100000) maxRows = 100000;
+    var offset = parseInt(e.parameter.offset) || 0;
 
     var lastRow = sheet.getLastRow();
     if (lastRow <= 1) {
       return ContentService.createTextOutput(
-        JSON.stringify({ data: [] })
+        JSON.stringify({ data: [], totalRows: 0 })
       ).setMimeType(ContentService.MimeType.JSON);
     }
 
-    var startRow = Math.max(2, lastRow - maxRows + 1);
-    var numRows = lastRow - startRow + 1;
+    var totalDataRows = lastRow - 1;
+    var endRow = lastRow - offset;
+    if (endRow < 2) {
+      return ContentService.createTextOutput(
+        JSON.stringify({ data: [], totalRows: totalDataRows })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var startRow = Math.max(2, endRow - maxRows + 1);
+    var numRows = endRow - startRow + 1;
     var numCols = sheet.getLastColumn();
     var values = sheet.getRange(startRow, 1, numRows, numCols).getValues();
 
@@ -145,7 +154,7 @@ function doGet(e) {
     }
 
     return ContentService.createTextOutput(
-      JSON.stringify({ data: data })
+      JSON.stringify({ data: data, totalRows: totalDataRows })
     ).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
